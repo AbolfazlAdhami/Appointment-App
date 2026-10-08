@@ -2,6 +2,24 @@ import bcrypt from "bcrypt";
 import { User, UserRole } from "../models/user.model";
 import { generateAccessToken } from "../utils/jwt";
 
+export interface ApiResponse<T> {
+  data: T;
+  metadata: {
+    success: boolean;
+    message?: string;
+    timestamp: string;
+  };
+}
+export interface AuthResponse {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: UserRole;
+  };
+  accessToken: string;
+}
+
 interface RegisterInput {
   name: string;
   email: string;
