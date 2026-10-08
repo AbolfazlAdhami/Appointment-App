@@ -9,6 +9,7 @@ node_modules/
 .idea/
 .vscode/
 
+
 # Temporary and cache files
 *.swp
 *.swo
@@ -25,6 +26,12 @@ Thumbs.db
 # Local development files
 *.log
 *.local
+npm-debug.log*
+*.tsbuildinfo
+
 
 # Testing files
 coverage/
+
+ 
+.DS_Store

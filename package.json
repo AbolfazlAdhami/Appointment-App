@@ -1,0 +1,27 @@
+{
+  "name": "appointment-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MERN appointment application",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AbolfazlAdhami/Pezeshki.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/AbolfazlAdhami/Pezeshki/issues"
+  },
+  "homepage": "https://github.com/AbolfazlAdhami/Pezeshki#readme"
+}
