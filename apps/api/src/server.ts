@@ -1,23 +1,16 @@
-import cors from "cors";
-import dotenv from "dotenv";
-import express from "express";
+import app from "./app";
+import { connectDatabase } from "./config/database";
+import { env } from "./config/env";
 
-dotenv.config();
+async function startServer(): Promise<void> {
+  await connectDatabase(env.mongodbUri);
 
-const app = express();
-
-const PORT = process.env.PORT || 4000;
-
-app.use(cors());
-app.use(express.json());
-
-app.get("/api/health", (_req, res) => {
-  res.json({
-    status: "ok",
-    service: "appointment-api",
+  app.listen(env.port, () => {
+    console.log(`API running on http://localhost:${env.port}`);
   });
-});
+}
 
-app.listen(PORT, () => {
-  console.log(`API running on http://localhost:${PORT}`);
+startServer().catch((error) => {
+  console.error("Failed to start server", error);
+  process.exit(1);
 });
