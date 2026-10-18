@@ -1,12 +1,22 @@
 services:
-  mongodb:
-    image: mongo:8
-    container_name: appointment-mongodb
+  postgres:
+    image: postgres:16-alpine
     restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pezeshki}
+      POSTGRES_USER: ${POSTGRES_USER:-pezeshki}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local_dev_only}
     ports:
-      - "27017:27017"
+      - "127.0.0.1:5433:5432"
     volumes:
-      - mongodb_data:/data/db
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 volumes:
-  mongodb_data:
+  postgres_data:
