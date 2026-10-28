@@ -1,189 +1,378 @@
 generator client {
-        provider = "prisma-client"
-        output   = "../src/generated/prisma"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
-        provider = "postgresql"
+  provider = "postgresql"
 }
 
-// ======================
+// #############
 // ENUMS
-// ======================
-
+// #############
 enum Role {
-        PATIENT
-        DOCTOR
-        ADMIN
+  PATIENT
+  DOCTOR
+  ADMIN
 }
 
-enum AppointmentStatus {
-        PENDING
-        CONFIRMED
-        COMPLETED
-        CANCELLED
-        NO_SHOW
+enum OtpPurpose {
+  SIGNUP
+  LOGIN
+  PHONE_VERIFICATION
+  PASSWORD_RESET
 }
 
-enum DayOfWeek {
-        MONDAY
-        TUESDAY
-        WEDNESDAY
-        THURSDAY
-        FRIDAY
-        SATURDAY
-        SUNDAY
+enum OtpChannel {
+  SMS
+  EMAIL
 }
 
-// ======================
+enum NationalIdChangeStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum AuditActorType {
+  USER
+  ADMIN
+  SYSTEM
+  EXTERNAL_SERVICE
+}
+
+enum AuditOutcome {
+  SUCCESS
+  FAILURE
+}
+
+enum SecurityEventType {
+  LOGIN_SUCCESS
+  LOGIN_FAILURE
+  LOGOUT
+  OTP_FAILURE
+  PASSWORD_CHANGED
+  ACCOUNT_LOCKED
+  SUSPICIOUS_ACTIVITY
+  SESSION_REVOKED
+}
+
+enum DoctorCredentialType {
+  MEDICAL_LICENSE
+  MEDICAL_COUNCIL_CARD
+  EDUCATION_CERTIFICATE
+  CV
+  ID_DOCUMENT
+  OTHER
+}
+
+enum CredentialStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  NEEDS_CORRECTION
+  EXPIRED
+}
+
+enum CredentialReviewDecision {
+  APPROVED
+  REJECTED
+  NEEDS_CORRECTION
+}
+
+enum DoctorVerificationStatus {
+  DRAFT
+  PENDING_REVIEW
+  NEEDS_CORRECTION
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+// #############
 // MODELS
-// ======================
+// #############
 
 model User {
-        id        String   @id @default(cuid())
-        email     String   @unique
-        password  String
-        firstName String
-        lastName  String
-        phone     String?
-        avatarUrl String?
-        role      Role     @default(PATIENT)
-        isActive  Boolean  @default(true)
-        createdAt DateTime @default(now())
-        updatedAt DateTime @updatedAt
+  id            String    @id @default(cuid())
+  firstName     String
+  lastName      String
+  nationalId    String    @unique
+  dateOfBirth   DateTime  @db.Date
+  phone         String    @unique
+  phoneVerified DateTime?
 
-        // Relations
-        doctorProfile  DoctorProfile?
-        patientProfile PatientProfile?
+  email             String?   @unique
+  emailVerifiedAt   DateTime?
+  passwordHash      String?
+  passwordChangedAt DateTime?
 
-        // Appointments as patient
-        patientAppointments Appointment[] @relation("PatientAppointments")
+  role        Role      @default(PATIENT)
+  isActive    Boolean   @default(true)
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-        // Appointments as doctor
-        doctorAppointments Appointment[] @relation("DoctorAppointments")
+  avatarFileId String?    @unique
+  avatarFile   FileAsset? @relation("UserAvatar", fields: [avatarFileId], references: [id], onDelete: SetNull)
 
-        @@index([email])
-        @@index([role])
+  doctorProfile  DoctorProfile?
+  patientProfile PatientProfile?
+
+  sessions            AuthSession[]
+  otpChallenges       OtpChallenge[]
+  passwordResetTokens PasswordResetToken[]
+
+  nationalIdChangeRequests   NationalIdChangeRequest[] @relation("NationalIdChangeOwner")
+  reviewedNationalIdRequests NationalIdChangeRequest[] @relation("NationalIdChangeReviewer")
+
+  auditEvents    AuditLog[]      @relation("AuditActor")
+  securityEvents SecurityEvent[]
+
+  ownedFiles FileAsset[] @relation("FileOwner")
+
+  reviewedDoctorProfiles    DoctorProfile[]          @relation("DoctorProfileReviewer")
+  reviewedDoctorCredentials DoctorCredentialReview[] @relation("CredentialReviewer")
+
+  @@index([role, isActive])
+  @@index([createdAt])
+}
+
+model AuthSession {
+  id               String    @id @default(cuid())
+  userId           String
+  refreshTokenHash String    @unique
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  lastUsedAt       DateTime?
+  createdAt        DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+}
+
+model OtpChallenge {
+  id          String     @id @default(cuid())
+  userId      String?
+  channel     OtpChannel
+  purpose     OtpPurpose
+  destination String
+  codeHash    String
+  attempts    Int        @default(0)
+  maxAttempts Int        @default(5)
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  createdAt   DateTime   @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([destination, purpose, createdAt])
+  @@index([expiresAt, consumedAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
+model NationalIdChangeRequest {
+  id                  String                 @id @default(cuid())
+  userId              String
+  requestedNationalId String                 @unique
+  reason              String?
+  status              NationalIdChangeStatus @default(PENDING)
+
+  reviewedById String?
+  reviewNote   String?
+  reviewedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user       User  @relation("NationalIdChangeOwner", fields: [userId], references: [id], onDelete: Restrict)
+  reviewedBy User? @relation("NationalIdChangeReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+}
+
+model FileAsset {
+  id           String   @id @default(cuid())
+  ownerUserId  String?
+  storageKey   String   @unique
+  originalName String
+  mimeType     String
+  sizeBytes    BigInt
+  checksum     String?
+  isPrivate    Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  owner User? @relation("FileOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+
+  avatarFor         User?              @relation("UserAvatar")
+  doctorCredentials DoctorCredential[]
+
+  @@index([ownerUserId, createdAt])
+}
+
+model AuditLog {
+  id          String         @id @default(cuid())
+  actorUserId String?
+  actorType   AuditActorType
+  action      String
+  entityType  String
+  entityId    String?
+  outcome     AuditOutcome   @default(SUCCESS)
+  reason      String?
+  changes     Json?
+  requestId   String?
+  ipAddress   String?
+  createdAt   DateTime       @default(now())
+  actor       User?          @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([action, createdAt])
+  @@index([requestId])
+}
+
+model SecurityEvent {
+  id        String            @id @default(cuid())
+  userId    String?
+  eventType SecurityEventType
+  success   Boolean
+  ipAddress String?
+  userAgent String?
+  requestId String?
+  details   Json?
+  createdAt DateTime          @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([eventType, createdAt])
 }
 
 model DoctorProfile {
-        id     String @id @default(cuid())
-        userId String @unique
-        user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                 String                   @id @default(cuid())
+  userId             String                   @unique
+  headline           String?
+  shortIntroduction  String?
+  biography          String?
+  yearsOfExperience  Int?
+  videoUrl           String?
+  verificationStatus DoctorVerificationStatus @default(DRAFT)
+  submittedAt        DateTime?
+  reviewedAt         DateTime?
+  reviewedById       String?
+  reviewNote         String?
+  isPublished        Boolean                  @default(false)
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
 
-        specialization  String
-        about           String?  @db.Text // Introduction / about the doctor
-        experienceYears Int?
-        education       String?  @db.Text
-        languages       String[] // e.g. ["English", "Arabic"]
-        consultationFee Decimal? @db.Decimal(10, 2)
-        isVerified      Boolean  @default(false)
-        isAvailable     Boolean  @default(true) // Can the doctor currently accept bookings?
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
 
-        createdAt DateTime @default(now())
-        updatedAt DateTime @updatedAt
+  reviewedByt User? @relation("DoctorProfileReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
 
-        // Weekly recurring availability
-        weeklyAvailabilities DoctorWeeklyAvailability[]
+  specialties DoctorSpecialty[]
+  credentials DoctorCredential[]
 
-        // Specific date overrides / blocks (optional but useful)
-        availabilityOverrides AvailabilityOverride[]
-
-        @@index([specialization])
-        @@index([isVerified, isAvailable])
+  @@index([verificationStatus, isPublished])
 }
 
 model PatientProfile {
-        id     String @id @default(cuid())
-        userId String @unique
-        user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
-        dateOfBirth        DateTime?
-        gender             String?
-        bloodType          String?
-        allergies          String?   @db.Text
-        chronicDiseases    String?   @db.Text // Short history of diseases
-        currentMedications String?   @db.Text // Current medications
-        emergencyContact   String?
-        notes              String?   @db.Text // General notes
-
-        createdAt DateTime @default(now())
-        updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
 }
 
-// ======================
-// AVAILABILITY
-// ======================
+model Specialty {
+  id          String  @id @default(cuid())
+  name        String
+  slug        String  @unique
+  description String?
+  isActive    Boolean @default(true)
+  sortOrder   Int     @default(0)
 
-// Recurring weekly schedule (e.g. Monday 09:00-12:00 and 16:00-20:00)
-model DoctorWeeklyAvailability {
-        id              String        @id @default(cuid())
-        doctorProfileId String
-        doctorProfile   DoctorProfile @relation(fields: [doctorProfileId], references: [id], onDelete: Cascade)
+  doctorSpecialties DoctorSpecialty[]
 
-        dayOfWeek       DayOfWeek
-        startTime       String // "09:00" (24h format)
-        endTime         String // "12:00"
-        slotDurationMin Int       @default(60) // 1-hour slots by default
-        isActive        Boolean   @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-        createdAt DateTime @default(now())
-        updatedAt DateTime @updatedAt
-
-        @@unique([doctorProfileId, dayOfWeek, startTime, endTime])
-        @@index([doctorProfileId, dayOfWeek])
+  @@index([isActive, sortOrder])
 }
 
-// Optional: specific date overrides (holidays, extra hours, blocked days)
-model AvailabilityOverride {
-        id              String        @id @default(cuid())
-        doctorProfileId String
-        doctorProfile   DoctorProfile @relation(fields: [doctorProfileId], references: [id], onDelete: Cascade)
+model DoctorSpecialty {
+  id              String   @id @default(cuid())
+  doctorProfileId String
+  specialtyId     String
+  isPrimary       Boolean  @default(false)
+  createdAt       DateTime @default(now())
 
-        date        DateTime @db.Date
-        isAvailable Boolean // false = fully blocked that day
-        startTime   String? // if available only partial day
-        endTime     String?
-        reason      String?
+  doctorProfile DoctorProfile @relation(fields: [doctorProfileId], references: [id], onDelete: Restrict)
 
-        createdAt DateTime @default(now())
-        updatedAt DateTime @updatedAt
+  specialty Specialty @relation(fields: [specialtyId], references: [id], onDelete: Restrict)
 
-        @@unique([doctorProfileId, date])
-        @@index([doctorProfileId, date])
+  @@unique([doctorProfileId, specialtyId])
+  @@index([specialtyId])
+  @@index([doctorProfileId, isPrimary])
 }
 
-// ======================
-// APPOINTMENTS
-// ======================
+model DoctorCredential {
+  id               String               @id @default(cuid())
+  doctorProfileId  String
+  fileAssetId      String               @unique
+  type             DoctorCredentialType
+  title            String
+  issuingAuthority String?
+  credentialNumber String?
+  issuedAt         DateTime?            @db.Date
+  expiresAt        DateTime?            @db.Date
+  status           CredentialStatus     @default(PENDING_REVIEW)
+  submittedAt      DateTime             @default(now())
+  reviewedAt       DateTime?
+  reviewNote       String?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
 
-model Appointment {
-        id String @id @default(cuid())
+  doctorProfile DoctorProfile @relation(fields: [doctorProfileId], references: [id], onDelete: Restrict)
+  fileAsst      FileAsset     @relation(fields: [fileAssetId], references: [id], onDelete: Restrict)
 
-        patientId String
-        patient   User   @relation("PatientAppointments", fields: [patientId], references: [id])
+  reviews DoctorCredentialReview[]
 
-        doctorId String
-        doctor   User   @relation("DoctorAppointments", fields: [doctorId], references: [id])
+  @@index([doctorProfileId, type])
+  @@index([doctorProfileId, status])
+  @@index([status, submittedAt])
+  @@index([expiresAt])
+}
 
-        startTime DateTime // Exact start datetime
-        endTime   DateTime // Exact end datetime (usually +60 min)
+model DoctorCredentialReview {
+  id           String                   @id @default(cuid())
+  credentialId String
+  reviewerId   String
+  decision     CredentialReviewDecision
+  note         String?
+  createdAt    DateTime                 @default(now())
 
-        status AppointmentStatus @default(PENDING)
-        reason String? // Why the patient is coming
-        notes  String?           @db.Text // Patient notes when booking
+  credential DoctorCredential @relation(fields: [credentialId], references: [id], onDelete: Restrict)
 
-        // Visit history / doctor's notes after the appointment
-        visitNotes   String?   @db.Text
-        diagnosis    String?   @db.Text
-        prescription String?   @db.Text
-        followUpDate DateTime?
+  reviewer User @relation("CredentialReviewer", fields: [reviewerId], references: [id], onDelete: Restrict)
 
-        createdAt DateTime @default(now())
-        updatedAt DateTime @updatedAt
-
-        @@unique([doctorId, startTime]) // Prevent double booking for the same doctor + time
-        @@index([patientId, startTime])
-        @@index([doctorId, startTime])
-        @@index([status, startTime])
+  @@index([credentialId, createdAt])
+  @@index([reviewerId, createdAt])
 }
