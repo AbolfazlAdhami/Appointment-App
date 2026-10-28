@@ -1,30 +1,22 @@
 import bcrypt from "bcrypt";
-import { User, UserRole } from "../models/user.model";
+import { Prisma, Role } from "../generated/prisma/client";
+import { prisma } from "../libs/prisma";
 import { generateAccessToken } from "../utils/jwt";
 
-export interface ApiResponse<T> {
-  data: T;
-  metadata: {
-    success: boolean;
-    message?: string;
-    timestamp: string;
-  };
-}
 export interface AuthResponse {
   user: {
     id: string;
     name: string;
     email: string;
-    role: UserRole;
+    role: Role;
   };
-  accessToken: string;
+  token: string;
 }
 
 interface RegisterInput {
   name: string;
   email: string;
   password: string;
-  role?: UserRole;
 }
 
 interface LoginInput {
@@ -32,23 +24,62 @@ interface LoginInput {
   password: string;
 }
 
+function toAuthUser(user: { id: string; firstName: string; lastName: string; email: string; role: Role }) {
+  return {
+    id: user.id,
+    name: [user.firstName, user.lastName].filter(Boolean).join(" "),
+    email: user.email,
+    role: user.role,
+  };
+}
+
 export async function registerUser(input: RegisterInput) {
-  const existingUser = await User.findOne({
-    email: input.email.toLowerCase(),
+  const email = input.email.trim().toLowerCase();
+  const name = input.name.trim();
+
+  if (name.length < 2) {
+    throw new Error("Name must contain at least 2 characters");
+  }
+
+  if (input.password.length < 8) {
+    throw new Error("Password must contain at least 8 characters");
+  }
+
+  const existingUser = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true },
   });
 
   if (existingUser) {
     throw new Error("Email already registered");
   }
 
+  const nameParts = name.split(/\s+/);
+  const firstName = nameParts.shift()!;
+  const lastName = nameParts.join(" ");
+
   const hashedPassword = await bcrypt.hash(input.password, 12);
 
-  const user = await User.create({
-    name: input.name,
-    email: input.email.toLowerCase(),
-    password: hashedPassword,
-    role: input.role ?? UserRole.CUSTOMER,
-  });
+  let user;
+
+  try {
+    user = await prisma.user.create({
+      data: {
+        firstName,
+        lastName,
+        email,
+        password: hashedPassword,
+        role: Role.PATIENT,
+      },
+    });
+  } catch (error) {
+    // Handles concurrent registrations for the same email.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      throw new Error("Email already registered");
+    }
+
+    throw error;
+  }
 
   const token = generateAccessToken({
     userId: user.id,
@@ -57,21 +88,18 @@ export async function registerUser(input: RegisterInput) {
 
   return {
     token,
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    },
+    user: toAuthUser(user),
   };
 }
 
 export async function loginUser(input: LoginInput) {
-  const user = await User.findOne({
-    email: input.email.toLowerCase(),
+  const email = input.email.trim().toLowerCase();
+
+  const user = await prisma.user.findUnique({
+    where: { email },
   });
 
-  if (!user) {
+  if (!user || !(await bcrypt.compare(input.password, user.password))) {
     throw new Error("Invalid email or password");
   }
 
@@ -79,12 +107,6 @@ export async function loginUser(input: LoginInput) {
     throw new Error("User account is inactive");
   }
 
-  const passwordMatches = await bcrypt.compare(input.password, user.password);
-
-  if (!passwordMatches) {
-    throw new Error("Invalid email or password");
-  }
-
   const token = generateAccessToken({
     userId: user.id,
     role: user.role,
@@ -92,11 +114,6 @@ export async function loginUser(input: LoginInput) {
 
   return {
     token,
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    },
+    user: toAuthUser(user),
   };
 }

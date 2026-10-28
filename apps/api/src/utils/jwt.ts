@@ -1,11 +1,11 @@
 import jwt from "jsonwebtoken";
 import type { SignOptions } from "jsonwebtoken";
+import { Role } from "../generated/prisma/client";
 import { env } from "../config/env";
-import { UserRole } from "../models/user.model";
 
 export interface AuthTokenPayload {
   userId: string;
-  role: UserRole;
+  role: Role;
 }
 
 export function generateAccessToken(payload: AuthTokenPayload): string {
@@ -15,5 +15,14 @@ export function generateAccessToken(payload: AuthTokenPayload): string {
 }
 
 export function verifyAccessToken(token: string): AuthTokenPayload {
-  return jwt.verify(token, env.jwtSecret) as AuthTokenPayload;
+  const payload = jwt.verify(token, env.jwtSecret);
+
+  if (typeof payload === "string" || typeof payload.userId !== "string" || !Object.values(Role).includes(payload.role as Role)) {
+    throw new Error("Invalid access token payload");
+  }
+
+  return {
+    userId: payload.userId,
+    role: payload.role as Role,
+  };
 }

@@ -1,56 +1,76 @@
-import { NextFunction, Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
+import { Role } from "../generated/prisma/client";
+import { prisma } from "../libs/prisma";
 import { verifyAccessToken } from "../utils/jwt";
-import { UserRole } from "../models/user.model";
 
 export interface AuthenticatedRequest extends Request {
   user?: {
     userId: string;
-    role: UserRole;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: Role;
   };
 }
 
-export function authenticate(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
+export async function authenticate(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
   const token = req.cookies?.accessToken;
 
   if (!token) {
-    res.status(401).json({
-      message: "Authentication required",
-    });
+    res.status(401).json({ message: "Authentication required" });
+    return;
+  }
 
+  let payload;
+
+  try {
+    payload = verifyAccessToken(token);
+  } catch {
+    res.status(401).json({ message: "Invalid or expired token" });
     return;
   }
 
   try {
-    const payload = verifyAccessToken(token);
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isActive: true,
+      },
+    });
+
+    if (!user || !user.isActive) {
+      res.status(401).json({ message: "User not found or inactive" });
+      return;
+    }
 
     req.user = {
-      userId: payload.userId,
-      role: payload.role,
+      userId: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
     };
 
     next();
-  } catch {
-    res.status(401).json({
-      message: "Invalid or expired token",
-    });
+  } catch (error) {
+    next(error);
   }
 }
 
-export function authorize(...roles: UserRole[]) {
+export function authorize(...roles: Role[]) {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
     if (!req.user) {
-      res.status(401).json({
-        message: "Authentication required",
-      });
-
+      res.status(401).json({ message: "Authentication required" });
       return;
     }
 
     if (!roles.includes(req.user.role)) {
-      res.status(403).json({
-        message: "Forbidden",
-      });
-
+      res.status(403).json({ message: "Forbidden" });
       return;
     }
 
