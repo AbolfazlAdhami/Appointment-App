@@ -1,93 +1,134 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+        provider = "prisma-client"
+        output   = "../src/generated/prisma"
 }
 
 datasource db {
-  provider = "postgresql"
+        provider = "postgresql"
 }
 
 // #############
 // ENUMS
 // #############
 enum Role {
-  PATIENT
-  DOCTOR
-  ADMIN
+        PATIENT
+        DOCTOR
+        ADMIN
 }
 
 enum OtpPurpose {
-  SIGNUP
-  LOGIN
-  PHONE_VERIFICATION
-  PASSWORD_RESET
+        SIGNUP
+        LOGIN
+        PHONE_VERIFICATION
+        PASSWORD_RESET
 }
 
 enum OtpChannel {
-  SMS
-  EMAIL
+        SMS
+        EMAIL
 }
 
 enum NationalIdChangeStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  CANCELLED
+        PENDING
+        APPROVED
+        REJECTED
+        CANCELLED
 }
 
 enum AuditActorType {
-  USER
-  ADMIN
-  SYSTEM
-  EXTERNAL_SERVICE
+        USER
+        ADMIN
+        SYSTEM
+        EXTERNAL_SERVICE
 }
 
 enum AuditOutcome {
-  SUCCESS
-  FAILURE
+        SUCCESS
+        FAILURE
 }
 
 enum SecurityEventType {
-  LOGIN_SUCCESS
-  LOGIN_FAILURE
-  LOGOUT
-  OTP_FAILURE
-  PASSWORD_CHANGED
-  ACCOUNT_LOCKED
-  SUSPICIOUS_ACTIVITY
-  SESSION_REVOKED
+        LOGIN_SUCCESS
+        LOGIN_FAILURE
+        LOGOUT
+        OTP_FAILURE
+        PASSWORD_CHANGED
+        ACCOUNT_LOCKED
+        SUSPICIOUS_ACTIVITY
+        SESSION_REVOKED
 }
 
 enum DoctorCredentialType {
-  MEDICAL_LICENSE
-  MEDICAL_COUNCIL_CARD
-  EDUCATION_CERTIFICATE
-  CV
-  ID_DOCUMENT
-  OTHER
+        MEDICAL_LICENSE
+        MEDICAL_COUNCIL_CARD
+        EDUCATION_CERTIFICATE
+        CV
+        ID_DOCUMENT
+        OTHER
 }
 
 enum CredentialStatus {
-  PENDING_REVIEW
-  APPROVED
-  REJECTED
-  NEEDS_CORRECTION
-  EXPIRED
+        PENDING_REVIEW
+        APPROVED
+        REJECTED
+        NEEDS_CORRECTION
+        EXPIRED
 }
 
 enum CredentialReviewDecision {
-  APPROVED
-  REJECTED
-  NEEDS_CORRECTION
+        APPROVED
+        REJECTED
+        NEEDS_CORRECTION
 }
 
 enum DoctorVerificationStatus {
-  DRAFT
-  PENDING_REVIEW
-  NEEDS_CORRECTION
-  APPROVED
-  REJECTED
-  SUSPENDED
+        DRAFT
+        PENDING_REVIEW
+        NEEDS_CORRECTION
+        APPROVED
+        REJECTED
+        SUSPENDED
+}
+
+enum MedicalHistoryStatus {
+        ACTIVE
+        RESOLVED
+        INACTIVE
+}
+
+enum AllergySeverity {
+        MILD
+        MODERATE
+        SEVERE
+        LIFE_THREATENING
+        UNKNOWN
+}
+
+enum AllergyStatus {
+        ACTIVE
+        INACTIVE
+        UNCONFIRMED
+}
+
+enum MedicationStatus {
+        ACTIVE
+        COMPLETED
+        DISCONTINUED
+        ON_HOLD
+}
+
+enum FamilyRelation {
+        MOTHER
+        FATHER
+        SISTER
+        BROTHER
+        CHILD
+        MATERNAL_GRANDMOTHER
+        MATERNAL_GRANDFATHER
+        PATERNAL_GRANDMOTHER
+        PATERNAL_GRANDFATHER
+        OTHER
+        UNKNOWN
 }
 
 // #############
@@ -95,284 +136,362 @@ enum DoctorVerificationStatus {
 // #############
 
 model User {
-  id            String    @id @default(cuid())
-  firstName     String
-  lastName      String
-  nationalId    String    @unique
-  dateOfBirth   DateTime  @db.Date
-  phone         String    @unique
-  phoneVerified DateTime?
+        id            String    @id @default(cuid())
+        firstName     String
+        lastName      String
+        nationalId    String    @unique
+        dateOfBirth   DateTime  @db.Date
+        phone         String    @unique
+        phoneVerified DateTime?
 
-  email             String?   @unique
-  emailVerifiedAt   DateTime?
-  passwordHash      String?
-  passwordChangedAt DateTime?
+        email             String?   @unique
+        emailVerifiedAt   DateTime?
+        passwordHash      String?
+        passwordChangedAt DateTime?
 
-  role        Role      @default(PATIENT)
-  isActive    Boolean   @default(true)
-  lastLoginAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+        role        Role      @default(PATIENT)
+        isActive    Boolean   @default(true)
+        lastLoginAt DateTime?
+        createdAt   DateTime  @default(now())
+        updatedAt   DateTime  @updatedAt
 
-  avatarFileId String?    @unique
-  avatarFile   FileAsset? @relation("UserAvatar", fields: [avatarFileId], references: [id], onDelete: SetNull)
+        avatarFileId String?    @unique
+        avatarFile   FileAsset? @relation("UserAvatar", fields: [avatarFileId], references: [id], onDelete: SetNull)
 
-  doctorProfile  DoctorProfile?
-  patientProfile PatientProfile?
+        doctorProfile  DoctorProfile?
+        patientProfile PatientProfile?
 
-  sessions            AuthSession[]
-  otpChallenges       OtpChallenge[]
-  passwordResetTokens PasswordResetToken[]
+        sessions            AuthSession[]
+        otpChallenges       OtpChallenge[]
+        passwordResetTokens PasswordResetToken[]
 
-  nationalIdChangeRequests   NationalIdChangeRequest[] @relation("NationalIdChangeOwner")
-  reviewedNationalIdRequests NationalIdChangeRequest[] @relation("NationalIdChangeReviewer")
+        nationalIdChangeRequests   NationalIdChangeRequest[] @relation("NationalIdChangeOwner")
+        reviewedNationalIdRequests NationalIdChangeRequest[] @relation("NationalIdChangeReviewer")
 
-  auditEvents    AuditLog[]      @relation("AuditActor")
-  securityEvents SecurityEvent[]
+        auditEvents    AuditLog[]      @relation("AuditActor")
+        securityEvents SecurityEvent[]
 
-  ownedFiles FileAsset[] @relation("FileOwner")
+        ownedFiles FileAsset[] @relation("FileOwner")
 
-  reviewedDoctorProfiles    DoctorProfile[]          @relation("DoctorProfileReviewer")
-  reviewedDoctorCredentials DoctorCredentialReview[] @relation("CredentialReviewer")
+        reviewedDoctorProfiles    DoctorProfile[]          @relation("DoctorProfileReviewer")
+        reviewedDoctorCredentials DoctorCredentialReview[] @relation("CredentialReviewer")
 
-  @@index([role, isActive])
-  @@index([createdAt])
+        @@index([role, isActive])
+        @@index([createdAt])
 }
 
 model AuthSession {
-  id               String    @id @default(cuid())
-  userId           String
-  refreshTokenHash String    @unique
-  expiresAt        DateTime
-  revokedAt        DateTime?
-  lastUsedAt       DateTime?
-  createdAt        DateTime  @default(now())
+        id               String    @id @default(cuid())
+        userId           String
+        refreshTokenHash String    @unique
+        expiresAt        DateTime
+        revokedAt        DateTime?
+        lastUsedAt       DateTime?
+        createdAt        DateTime  @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+        user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, revokedAt])
-  @@index([expiresAt])
+        @@index([userId, revokedAt])
+        @@index([expiresAt])
 }
 
 model OtpChallenge {
-  id          String     @id @default(cuid())
-  userId      String?
-  channel     OtpChannel
-  purpose     OtpPurpose
-  destination String
-  codeHash    String
-  attempts    Int        @default(0)
-  maxAttempts Int        @default(5)
-  expiresAt   DateTime
-  consumedAt  DateTime?
-  createdAt   DateTime   @default(now())
+        id          String     @id @default(cuid())
+        userId      String?
+        channel     OtpChannel
+        purpose     OtpPurpose
+        destination String
+        codeHash    String
+        attempts    Int        @default(0)
+        maxAttempts Int        @default(5)
+        expiresAt   DateTime
+        consumedAt  DateTime?
+        createdAt   DateTime   @default(now())
 
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+        user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-  @@index([destination, purpose, createdAt])
-  @@index([expiresAt, consumedAt])
+        @@index([destination, purpose, createdAt])
+        @@index([expiresAt, consumedAt])
 }
 
 model PasswordResetToken {
-  id        String    @id @default(cuid())
-  userId    String
-  tokenHash String    @unique
-  expiresAt DateTime
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
+        id        String    @id @default(cuid())
+        userId    String
+        tokenHash String    @unique
+        expiresAt DateTime
+        usedAt    DateTime?
+        createdAt DateTime  @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+        user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, expiresAt])
+        @@index([userId, expiresAt])
 }
 
 model NationalIdChangeRequest {
-  id                  String                 @id @default(cuid())
-  userId              String
-  requestedNationalId String                 @unique
-  reason              String?
-  status              NationalIdChangeStatus @default(PENDING)
+        id                  String                 @id @default(cuid())
+        userId              String
+        requestedNationalId String                 @unique
+        reason              String?
+        status              NationalIdChangeStatus @default(PENDING)
 
-  reviewedById String?
-  reviewNote   String?
-  reviewedAt   DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+        reviewedById String?
+        reviewNote   String?
+        reviewedAt   DateTime?
+        createdAt    DateTime  @default(now())
+        updatedAt    DateTime  @updatedAt
 
-  user       User  @relation("NationalIdChangeOwner", fields: [userId], references: [id], onDelete: Restrict)
-  reviewedBy User? @relation("NationalIdChangeReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+        user       User  @relation("NationalIdChangeOwner", fields: [userId], references: [id], onDelete: Restrict)
+        reviewedBy User? @relation("NationalIdChangeReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
 
-  @@index([userId, status])
-  @@index([status, createdAt])
+        @@index([userId, status])
+        @@index([status, createdAt])
 }
 
 model FileAsset {
-  id           String   @id @default(cuid())
-  ownerUserId  String?
-  storageKey   String   @unique
-  originalName String
-  mimeType     String
-  sizeBytes    BigInt
-  checksum     String?
-  isPrivate    Boolean  @default(true)
-  createdAt    DateTime @default(now())
+        id           String   @id @default(cuid())
+        ownerUserId  String?
+        storageKey   String   @unique
+        originalName String
+        mimeType     String
+        sizeBytes    BigInt
+        checksum     String?
+        isPrivate    Boolean  @default(true)
+        createdAt    DateTime @default(now())
 
-  owner User? @relation("FileOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+        owner User? @relation("FileOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
 
-  avatarFor         User?              @relation("UserAvatar")
-  doctorCredentials DoctorCredential[]
+        avatarFor         User?              @relation("UserAvatar")
+        doctorCredentials DoctorCredential[]
 
-  @@index([ownerUserId, createdAt])
+        @@index([ownerUserId, createdAt])
 }
 
 model AuditLog {
-  id          String         @id @default(cuid())
-  actorUserId String?
-  actorType   AuditActorType
-  action      String
-  entityType  String
-  entityId    String?
-  outcome     AuditOutcome   @default(SUCCESS)
-  reason      String?
-  changes     Json?
-  requestId   String?
-  ipAddress   String?
-  createdAt   DateTime       @default(now())
-  actor       User?          @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+        id          String         @id @default(cuid())
+        actorUserId String?
+        actorType   AuditActorType
+        action      String
+        entityType  String
+        entityId    String?
+        outcome     AuditOutcome   @default(SUCCESS)
+        reason      String?
+        changes     Json?
+        requestId   String?
+        ipAddress   String?
+        createdAt   DateTime       @default(now())
+        actor       User?          @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
 
-  @@index([entityType, entityId, createdAt])
-  @@index([actorUserId, createdAt])
-  @@index([action, createdAt])
-  @@index([requestId])
+        @@index([entityType, entityId, createdAt])
+        @@index([actorUserId, createdAt])
+        @@index([action, createdAt])
+        @@index([requestId])
 }
 
 model SecurityEvent {
-  id        String            @id @default(cuid())
-  userId    String?
-  eventType SecurityEventType
-  success   Boolean
-  ipAddress String?
-  userAgent String?
-  requestId String?
-  details   Json?
-  createdAt DateTime          @default(now())
+        id        String            @id @default(cuid())
+        userId    String?
+        eventType SecurityEventType
+        success   Boolean
+        ipAddress String?
+        userAgent String?
+        requestId String?
+        details   Json?
+        createdAt DateTime          @default(now())
 
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+        user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-  @@index([userId, createdAt])
-  @@index([eventType, createdAt])
+        @@index([userId, createdAt])
+        @@index([eventType, createdAt])
 }
 
 model DoctorProfile {
-  id                 String                   @id @default(cuid())
-  userId             String                   @unique
-  headline           String?
-  shortIntroduction  String?
-  biography          String?
-  yearsOfExperience  Int?
-  videoUrl           String?
-  verificationStatus DoctorVerificationStatus @default(DRAFT)
-  submittedAt        DateTime?
-  reviewedAt         DateTime?
-  reviewedById       String?
-  reviewNote         String?
-  isPublished        Boolean                  @default(false)
-  createdAt          DateTime                 @default(now())
-  updatedAt          DateTime                 @updatedAt
+        id                 String                   @id @default(cuid())
+        userId             String                   @unique
+        headline           String?
+        shortIntroduction  String?
+        biography          String?
+        yearsOfExperience  Int?
+        videoUrl           String?
+        verificationStatus DoctorVerificationStatus @default(DRAFT)
+        submittedAt        DateTime?
+        reviewedAt         DateTime?
+        reviewedById       String?
+        reviewNote         String?
+        isPublished        Boolean                  @default(false)
+        createdAt          DateTime                 @default(now())
+        updatedAt          DateTime                 @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+        user User @relation(fields: [userId], references: [id], onDelete: Restrict)
 
-  reviewedByt User? @relation("DoctorProfileReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+        reviewedByt User? @relation("DoctorProfileReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
 
-  specialties DoctorSpecialty[]
-  credentials DoctorCredential[]
+        specialties DoctorSpecialty[]
+        credentials DoctorCredential[]
 
-  @@index([verificationStatus, isPublished])
+        @@index([verificationStatus, isPublished])
 }
 
 model PatientProfile {
-  id                    String   @id @default(cuid())
-  userId                String   @unique
-  emergencyContactName  String?
-  emergencyContactPhone String?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+        id                    String   @id @default(cuid())
+        userId                String   @unique
+        emergencyContactName  String?
+        emergencyContactPhone String?
+        createdAt             DateTime @default(now())
+        updatedAt             DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+        medicalHistories PatientMedicalHistory[]
+        allergies        PatientAllergy[]
+        medications      PatientMedication[]
+        familyHistories  PatientFamilyHistory[]
+
+        user User @relation(fields: [userId], references: [id], onDelete: Restrict)
 }
 
 model Specialty {
-  id          String  @id @default(cuid())
-  name        String
-  slug        String  @unique
-  description String?
-  isActive    Boolean @default(true)
-  sortOrder   Int     @default(0)
+        id          String  @id @default(cuid())
+        name        String
+        slug        String  @unique
+        description String?
+        isActive    Boolean @default(true)
+        sortOrder   Int     @default(0)
 
-  doctorSpecialties DoctorSpecialty[]
+        doctorSpecialties DoctorSpecialty[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+        createdAt DateTime @default(now())
+        updatedAt DateTime @updatedAt
 
-  @@index([isActive, sortOrder])
+        @@index([isActive, sortOrder])
 }
 
 model DoctorSpecialty {
-  id              String   @id @default(cuid())
-  doctorProfileId String
-  specialtyId     String
-  isPrimary       Boolean  @default(false)
-  createdAt       DateTime @default(now())
+        id              String   @id @default(cuid())
+        doctorProfileId String
+        specialtyId     String
+        isPrimary       Boolean  @default(false)
+        createdAt       DateTime @default(now())
 
-  doctorProfile DoctorProfile @relation(fields: [doctorProfileId], references: [id], onDelete: Restrict)
+        doctorProfile DoctorProfile @relation(fields: [doctorProfileId], references: [id], onDelete: Restrict)
 
-  specialty Specialty @relation(fields: [specialtyId], references: [id], onDelete: Restrict)
+        specialty Specialty @relation(fields: [specialtyId], references: [id], onDelete: Restrict)
 
-  @@unique([doctorProfileId, specialtyId])
-  @@index([specialtyId])
-  @@index([doctorProfileId, isPrimary])
+        @@unique([doctorProfileId, specialtyId])
+        @@index([specialtyId])
+        @@index([doctorProfileId, isPrimary])
 }
 
 model DoctorCredential {
-  id               String               @id @default(cuid())
-  doctorProfileId  String
-  fileAssetId      String               @unique
-  type             DoctorCredentialType
-  title            String
-  issuingAuthority String?
-  credentialNumber String?
-  issuedAt         DateTime?            @db.Date
-  expiresAt        DateTime?            @db.Date
-  status           CredentialStatus     @default(PENDING_REVIEW)
-  submittedAt      DateTime             @default(now())
-  reviewedAt       DateTime?
-  reviewNote       String?
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
+        id               String               @id @default(cuid())
+        doctorProfileId  String
+        fileAssetId      String               @unique
+        type             DoctorCredentialType
+        title            String
+        issuingAuthority String?
+        credentialNumber String?
+        issuedAt         DateTime?            @db.Date
+        expiresAt        DateTime?            @db.Date
+        status           CredentialStatus     @default(PENDING_REVIEW)
+        submittedAt      DateTime             @default(now())
+        reviewedAt       DateTime?
+        reviewNote       String?
+        createdAt        DateTime             @default(now())
+        updatedAt        DateTime             @updatedAt
 
-  doctorProfile DoctorProfile @relation(fields: [doctorProfileId], references: [id], onDelete: Restrict)
-  fileAsst      FileAsset     @relation(fields: [fileAssetId], references: [id], onDelete: Restrict)
+        doctorProfile DoctorProfile @relation(fields: [doctorProfileId], references: [id], onDelete: Restrict)
+        fileAsst      FileAsset     @relation(fields: [fileAssetId], references: [id], onDelete: Restrict)
 
-  reviews DoctorCredentialReview[]
+        reviews DoctorCredentialReview[]
 
-  @@index([doctorProfileId, type])
-  @@index([doctorProfileId, status])
-  @@index([status, submittedAt])
-  @@index([expiresAt])
+        @@index([doctorProfileId, type])
+        @@index([doctorProfileId, status])
+        @@index([status, submittedAt])
+        @@index([expiresAt])
 }
 
 model DoctorCredentialReview {
-  id           String                   @id @default(cuid())
-  credentialId String
-  reviewerId   String
-  decision     CredentialReviewDecision
-  note         String?
-  createdAt    DateTime                 @default(now())
+        id           String                   @id @default(cuid())
+        credentialId String
+        reviewerId   String
+        decision     CredentialReviewDecision
+        note         String?
+        createdAt    DateTime                 @default(now())
 
-  credential DoctorCredential @relation(fields: [credentialId], references: [id], onDelete: Restrict)
+        credential DoctorCredential @relation(fields: [credentialId], references: [id], onDelete: Restrict)
 
-  reviewer User @relation("CredentialReviewer", fields: [reviewerId], references: [id], onDelete: Restrict)
+        reviewer User @relation("CredentialReviewer", fields: [reviewerId], references: [id], onDelete: Restrict)
 
-  @@index([credentialId, createdAt])
-  @@index([reviewerId, createdAt])
+        @@index([credentialId, createdAt])
+        @@index([reviewerId, createdAt])
+}
+
+model PatientMedicalHistory {
+        id               String               @id @default(cuid())
+        patientProfileId String
+        conditionName    String
+        description      String?
+        diagnosedAt      DateTime?            @db.Date
+        resolvedAt       DateTime?            @db.Date
+        status           MedicalHistoryStatus @default(ACTIVE)
+        notes            String?
+        createdAt        DateTime             @default(now())
+        updatedAt        DateTime             @updatedAt
+        patientProfile   PatientProfile       @relation(fields: [patientProfileId], references: [id], onDelete: Restrict)
+
+        @@index([patientProfileId, status])
+        @@index([patientProfileId, conditionName])
+}
+
+model PatientAllergy {
+        id               String          @id @default(cuid())
+        patientProfileId String
+        allergen         String
+        reaction         String?
+        severity         AllergySeverity @default(UNKNOWN)
+        status           AllergyStatus   @default(ACTIVE)
+        diagnosedAt      DateTime?       @db.Date
+        notes            String?
+        createdAt        DateTime        @default(now())
+        updatedAt        DateTime        @updatedAt
+        patientProfile   PatientProfile  @relation(fields: [patientProfileId], references: [id], onDelete: Restrict)
+
+        @@index([patientProfileId, status])
+        @@index([patientProfileId, allergen])
+}
+
+model PatientMedication {
+        id               String           @id @default(cuid())
+        patientProfileId String
+        medicationName   String
+        activeIngredient String?
+        dosage           String?
+        route            String?
+        frequency        String?
+        instructions     String?
+        startedAt        DateTime?        @db.Date
+        endedAt          DateTime?        @db.Date
+        status           MedicationStatus @default(ACTIVE)
+        prescribedBy     String?
+        notes            String?
+        createdAt        DateTime         @default(now())
+        updatedAt        DateTime         @updatedAt
+        patientProfile   PatientProfile   @relation(fields: [patientProfileId], references: [id], onDelete: Restrict)
+
+        @@index([patientProfileId, status])
+        @@index([patientProfileId, medicationName])
+}
+
+model PatientFamilyHistory {
+        id               String         @id @default(cuid())
+        patientProfileId String
+        relation         FamilyRelation @default(UNKNOWN)
+        conditionName    String
+        ageAtDiagnosis   Int?
+        isDeceased       Boolean?
+        notes            String?
+        createdAt        DateTime       @default(now())
+        updatedAt        DateTime       @updatedAt
+
+        patientProfile PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Restrict)
+
+        @@index([patientProfileId, relation])
+        @@index([patientProfileId, conditionName])
 }

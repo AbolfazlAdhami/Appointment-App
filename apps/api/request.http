@@ -1,0 +1,25 @@
+# Register 
+POST  http://localhost:4000/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "John Doe",
+  "email": "john@gmail.com",
+  "password": "123Password"
+}
+
+# Get Current User data
+GET http://localhost:4000/api/auth/me
+
+
+# Test Login User 
+POST http://localhost:4000/api/auth/login
+Content-Type: application/json
+
+{
+        "email":"john@gmail.com",
+        "password":"123Password"
+}
+
+#  Log out User
+POST  http://localhost:4000/api/auth/logout
