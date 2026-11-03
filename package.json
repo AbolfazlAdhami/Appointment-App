@@ -9,7 +9,8 @@
   ],
   "scripts": {
     "dev": "npm run dev --workspaces --if-present",
-    "build": "npm run build --workspaces --if-present",
+    "build:types": "npm run build --workspace=@appointment/types",
+    "build": "npm run build:types && npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present"
   },
   "repository": {
