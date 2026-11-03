@@ -1,0 +1,112 @@
+model PatientProfile {
+  id                      String                   @id @default(cuid())
+  userId                  String                   @unique
+  emergencyContactName    String?
+  emergencyContactPhone   String?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  user                    User                     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  medicalHistories        PatientMedicalHistory[]
+  allergies               PatientAllergy[]
+  medications             PatientMedication[]
+  familyHistories         PatientFamilyHistory[]
+  insurances              PatientInsurance[]
+  appointments            Appointment[]
+  waitlistEntries         WaitlistEntry[]
+  visitRecords            VisitRecord[]
+  followUpRecommendations FollowUpRecommendation[]
+
+  @@index([createdAt])
+}
+
+model PatientMedicalHistory {
+  id               String               @id @default(cuid())
+  patientProfileId String
+  conditionName    String
+  description      String?
+  diagnosedAt      DateTime?            @db.Date
+  resolvedAt       DateTime?            @db.Date
+  status           MedicalHistoryStatus @default(ACTIVE)
+  notes            String?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  patientProfile   PatientProfile       @relation(fields: [patientProfileId], references: [id], onDelete: Restrict)
+
+  @@index([patientProfileId, status])
+  @@index([patientProfileId, conditionName])
+}
+
+model PatientAllergy {
+  id               String          @id @default(cuid())
+  patientProfileId String
+  allergen         String
+  reaction         String?
+  severity         AllergySeverity @default(UNKNOWN)
+  status           AllergyStatus   @default(ACTIVE)
+  notes            String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  patientProfile   PatientProfile  @relation(fields: [patientProfileId], references: [id], onDelete: Restrict)
+
+  @@index([patientProfileId, status])
+}
+
+model PatientMedication {
+  id               String           @id @default(cuid())
+  patientProfileId String
+  medicationName   String
+  dosage           String?
+  frequency        String?
+  startedAt        DateTime?        @db.Date
+  endedAt          DateTime?        @db.Date
+  status           MedicationStatus @default(ACTIVE)
+  notes            String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  patientProfile   PatientProfile   @relation(fields: [patientProfileId], references: [id], onDelete: Restrict)
+
+  @@index([patientProfileId, status])
+}
+
+model PatientFamilyHistory {
+  id               String         @id @default(cuid())
+  patientProfileId String
+  relation         FamilyRelation
+  conditionName    String
+  notes            String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Restrict)
+
+  @@index([patientProfileId, relation])
+}
+
+model InsuranceProvider {
+  id                String             @id @default(cuid())
+  name              String             @unique
+  code              String?            @unique
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  patientInsurances PatientInsurance[]
+
+  @@index([isActive, name])
+}
+
+model PatientInsurance {
+  id               String            @id @default(cuid())
+  patientProfileId String
+  providerId       String
+  policyNumber     String?
+  status           InsuranceStatus   @default(ACTIVE)
+  validFrom        DateTime?         @db.Date
+  validUntil       DateTime?         @db.Date
+  notes            String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  patientProfile   PatientProfile    @relation(fields: [patientProfileId], references: [id], onDelete: Restrict)
+  provider         InsuranceProvider @relation(fields: [providerId], references: [id], onDelete: Restrict)
+
+  @@index([patientProfileId, status])
+  @@index([providerId, status])
+}

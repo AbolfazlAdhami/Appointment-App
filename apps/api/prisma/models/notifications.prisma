@@ -1,0 +1,54 @@
+model Notification {
+  id         String                 @id @default(cuid())
+  userId     String
+  title      String
+  body       String
+  category   String
+  status     NotificationStatus     @default(PENDING)
+  actionUrl  String?
+  metadata   Json?
+  readAt     DateTime?
+  createdAt  DateTime               @default(now())
+  updatedAt  DateTime               @updatedAt
+  user       User                   @relation(fields: [userId], references: [id], onDelete: Restrict)
+  deliveries NotificationDelivery[]
+
+  @@index([userId, status, createdAt])
+  @@index([category, createdAt])
+}
+
+model NotificationDelivery {
+  id                String                     @id @default(cuid())
+  notificationId    String
+  channel           NotificationChannel
+  status            NotificationDeliveryStatus @default(PENDING)
+  destination       String?
+  provider          String?
+  providerReference String?
+  attemptCount      Int                        @default(0)
+  nextAttemptAt     DateTime?
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  failureReason     String?
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+  notification      Notification               @relation(fields: [notificationId], references: [id], onDelete: Restrict)
+
+  @@index([notificationId, channel])
+  @@index([status, nextAttemptAt])
+  @@index([provider, providerReference])
+}
+
+model NotificationPreference {
+  id        String              @id @default(cuid())
+  userId    String
+  channel   NotificationChannel
+  category  String
+  isEnabled Boolean             @default(true)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  user      User                @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, channel, category])
+  @@index([userId, isEnabled])
+}

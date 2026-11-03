@@ -1,0 +1,202 @@
+model Payment {
+  id                 String          @id @default(cuid())
+  appointmentId      String
+  payerUserId        String?
+  purpose            PaymentPurpose
+  provider           PaymentProvider @default(GATEWAY)
+  status             PaymentStatus   @default(PENDING)
+  amount             Decimal         @db.Decimal(12, 2)
+  currency           String          @default("IRR")
+  providerReference  String?
+  idempotencyKey     String          @unique
+  checkoutUrl        String?
+  expiresAt          DateTime?
+  paidAt             DateTime?
+  failureCode        String?
+  failureMessage     String?
+  feePayer           FeePayer?
+  feeBaseAmount      Decimal?        @db.Decimal(12, 2)
+  feeFixedSnapshot   Decimal?        @db.Decimal(12, 2)
+  feePercentSnapshot Decimal?        @db.Decimal(7, 4)
+  feeAmount          Decimal?        @db.Decimal(12, 2)
+  metadata           Json?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  appointment        Appointment     @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
+  payer              User?           @relation("PaymentPayer", fields: [payerUserId], references: [id], onDelete: Restrict)
+  refunds            Refund[]
+
+  @@index([appointmentId, purpose, createdAt])
+  @@index([status, createdAt])
+  @@index([provider, providerReference])
+  @@index([payerUserId, createdAt])
+}
+
+model Refund {
+  id                String       @id @default(cuid())
+  paymentId         String
+  amount            Decimal      @db.Decimal(12, 2)
+  currency          String       @default("IRR")
+  status            RefundStatus @default(PENDING)
+  providerReference String?
+  reason            String?
+  idempotencyKey    String       @unique
+  processedAt       DateTime?
+  failureMessage    String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  payment           Payment      @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+
+  @@index([paymentId, status])
+  @@index([status, createdAt])
+}
+
+model PlatformFeePolicy {
+  id             String          @id @default(cuid())
+  name           String
+  serviceId      String?
+  feeType        PlatformFeeType
+  payer          FeePayer        @default(PATIENT)
+  fixedAmount    Decimal         @default(0) @db.Decimal(12, 2)
+  percentage     Decimal         @default(0) @db.Decimal(7, 4)
+  currency       String          @default("IRR")
+  effectiveFrom  DateTime
+  effectiveUntil DateTime?
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  service        DoctorService?  @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+
+  @@index([isActive, effectiveFrom, effectiveUntil])
+  @@index([serviceId, isActive])
+}
+
+model DoctorWallet {
+  id              String              @id @default(cuid())
+  doctorProfileId String              @unique
+  currency        String              @default("IRR")
+  isActive        Boolean             @default(true)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  doctorProfile   DoctorProfile       @relation(fields: [doctorProfileId], references: [id], onDelete: Restrict)
+  transactions    WalletTransaction[]
+  payoutRequests  PayoutRequest[]
+
+  @@index([isActive])
+}
+
+model WalletTransaction {
+  id             String                  @id @default(cuid())
+  walletId       String
+  type           WalletTransactionType
+  status         WalletTransactionStatus @default(PENDING)
+  amount         Decimal                 @db.Decimal(12, 2)
+  currency       String                  @default("IRR")
+  referenceType  String?
+  referenceId    String?
+  idempotencyKey String                  @unique
+  description    String?
+  metadata       Json?
+  createdAt      DateTime                @default(now())
+  postedAt       DateTime?
+  wallet         DoctorWallet            @relation(fields: [walletId], references: [id], onDelete: Restrict)
+
+  @@index([walletId, status, createdAt])
+  @@index([referenceType, referenceId])
+  @@index([type, createdAt])
+}
+
+model PayoutPeriod {
+  id             String           @id @default(cuid())
+  name           String
+  unit           PayoutPeriodUnit
+  startsAt       DateTime
+  endsAt         DateTime
+  requestFrom    DateTime?
+  requestUntil   DateTime?
+  isActive       Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  payoutRequests PayoutRequest[]
+
+  @@index([isActive, startsAt, endsAt])
+}
+
+model PayoutRequest {
+  id             String              @id @default(cuid())
+  walletId       String
+  periodId       String
+  amount         Decimal             @db.Decimal(12, 2)
+  currency       String              @default("IRR")
+  status         PayoutRequestStatus @default(REQUESTED)
+  requestedAt    DateTime            @default(now())
+  reviewedAt     DateTime?
+  reviewNote     String?
+  processedAt    DateTime?
+  failureReason  String?
+  idempotencyKey String              @unique
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  wallet         DoctorWallet        @relation(fields: [walletId], references: [id], onDelete: Restrict)
+  period         PayoutPeriod        @relation(fields: [periodId], references: [id], onDelete: Restrict)
+  approvals      PayoutApproval[]
+  transfers      PayoutTransaction[]
+
+  @@index([walletId, status, requestedAt])
+  @@index([periodId, status])
+  @@index([status, requestedAt])
+}
+
+model PayoutApproval {
+  id              String                 @id @default(cuid())
+  payoutRequestId String
+  reviewerId      String
+  decision        PayoutApprovalDecision
+  note            String?
+  createdAt       DateTime               @default(now())
+  payoutRequest   PayoutRequest          @relation(fields: [payoutRequestId], references: [id], onDelete: Restrict)
+  reviewer        User                   @relation(fields: [reviewerId], references: [id], onDelete: Restrict)
+
+  @@index([payoutRequestId, createdAt])
+  @@index([reviewerId, createdAt])
+}
+
+model PayoutTransaction {
+  id                String               @id @default(cuid())
+  payoutRequestId   String
+  status            PayoutTransferStatus @default(PENDING)
+  amount            Decimal              @db.Decimal(12, 2)
+  currency          String               @default("IRR")
+  providerReference String?
+  idempotencyKey    String               @unique
+  failureMessage    String?
+  processedAt       DateTime?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  payoutRequest     PayoutRequest        @relation(fields: [payoutRequestId], references: [id], onDelete: Restrict)
+
+  @@index([payoutRequestId, status])
+  @@index([status, createdAt])
+  @@index([providerReference])
+}
+
+model CancellationPolicy {
+  id                 String                  @id @default(cuid())
+  name               String
+  serviceId          String?
+  scope              CancellationPolicyScope @default(BOTH)
+  minimumNoticeHours Int                     @default(0)
+  refundPercentage   Decimal                 @default(100) @db.Decimal(5, 2)
+  fixedPenalty       Decimal                 @default(0) @db.Decimal(12, 2)
+  currency           String                  @default("IRR")
+  effectiveFrom      DateTime
+  effectiveUntil     DateTime?
+  isActive           Boolean                 @default(true)
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  service            DoctorService?          @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  appointments       Appointment[]
+
+  @@index([isActive, effectiveFrom, effectiveUntil])
+  @@index([serviceId, isActive])
+}

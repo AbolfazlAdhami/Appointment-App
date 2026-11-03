@@ -1,0 +1,132 @@
+model VisitRecord {
+  id                      String                   @id @default(cuid())
+  appointmentId           String                   @unique
+  patientProfileId        String
+  doctorProfileId         String
+  status                  VisitStatus              @default(IN_PROGRESS)
+  chiefComplaint          String?
+  symptoms                String?
+  examinationNotes        String?
+  assessment              String?
+  treatmentPlan           String?
+  followUpNotes           String?
+  startedAt               DateTime                 @default(now())
+  completedAt             DateTime?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  appointment             Appointment              @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
+  patientProfile          PatientProfile           @relation(fields: [patientProfileId], references: [id], onDelete: Restrict)
+  doctorProfile           DoctorProfile            @relation(fields: [doctorProfileId], references: [id], onDelete: Restrict)
+  diagnoses               VisitDiagnosis[]
+  prescriptions           Prescription[]
+  orders                  DoctorOrder[]
+  documents               MedicalDocument[]
+  followUpRecommendations FollowUpRecommendation[]
+
+  @@index([patientProfileId, startedAt])
+  @@index([doctorProfileId, startedAt])
+  @@index([status, startedAt])
+}
+
+model VisitDiagnosis {
+  id            String      @id @default(cuid())
+  visitRecordId String
+  codeSystem    String?
+  diagnosisCode String?
+  diagnosisName String
+  notes         String?
+  isPrimary     Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  visitRecord   VisitRecord @relation(fields: [visitRecordId], references: [id], onDelete: Restrict)
+
+  @@index([visitRecordId, isPrimary])
+  @@index([diagnosisCode])
+}
+
+model Prescription {
+  id            String                         @id @default(cuid())
+  visitRecordId String
+  status        PrescriptionStatus             @default(DRAFT)
+  issuedAt      DateTime?
+  validUntil    DateTime?
+  instructions  String?
+  createdAt     DateTime                       @default(now())
+  updatedAt     DateTime                       @updatedAt
+  visitRecord   VisitRecord                    @relation(fields: [visitRecordId], references: [id], onDelete: Restrict)
+  items         PrescriptionItem[]
+  external      ExternalPrescriptionReference?
+
+  @@index([visitRecordId, status])
+  @@index([status, issuedAt])
+}
+
+model PrescriptionItem {
+  id               String                 @id @default(cuid())
+  prescriptionId   String
+  medicationName   String
+  activeIngredient String?
+  strength         String?
+  dosage           String?
+  route            String?
+  frequency        String?
+  durationDays     Int?
+  quantity         Decimal?               @db.Decimal(10, 2)
+  quantityUnit     String?
+  instructions     String?
+  status           PrescriptionItemStatus @default(ACTIVE)
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  prescription     Prescription           @relation(fields: [prescriptionId], references: [id], onDelete: Restrict)
+
+  @@index([prescriptionId, status])
+  @@index([medicationName])
+}
+
+model DoctorOrder {
+  id            String            @id @default(cuid())
+  visitRecordId String
+  title         String
+  description   String?
+  orderType     DoctorOrderType
+  status        DoctorOrderStatus @default(ACTIVE)
+  orderedAt     DateTime          @default(now())
+  completedAt   DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  visitRecord   VisitRecord       @relation(fields: [visitRecordId], references: [id], onDelete: Restrict)
+
+  @@index([visitRecordId, status])
+  @@index([orderType, orderedAt])
+}
+
+model MedicalDocument {
+  id            String              @id @default(cuid())
+  visitRecordId String
+  fileAssetId   String              @unique
+  documentType  MedicalDocumentType
+  title         String
+  description   String?
+  uploadedAt    DateTime            @default(now())
+  visitRecord   VisitRecord         @relation(fields: [visitRecordId], references: [id], onDelete: Restrict)
+  fileAsset     FileAsset           @relation(fields: [fileAssetId], references: [id], onDelete: Restrict)
+
+  @@index([visitRecordId, documentType])
+}
+
+model ExternalPrescriptionReference {
+  id                String                     @id @default(cuid())
+  prescriptionId    String                     @unique
+  provider          String
+  externalReference String?
+  status            ExternalPrescriptionStatus @default(PENDING)
+  submittedAt       DateTime?
+  synchronizedAt    DateTime?
+  failureReason     String?
+  metadata          Json?
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+  prescription      Prescription               @relation(fields: [prescriptionId], references: [id], onDelete: Restrict)
+
+  @@index([provider, externalReference])
+  @@index([status, createdAt])
+}

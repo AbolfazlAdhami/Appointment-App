@@ -1,0 +1,163 @@
+model User {
+  id                String    @id @default(cuid())
+  firstName         String
+  lastName          String
+  nationalId        String    @unique
+  dateOfBirth       DateTime  @db.Date
+  phone             String    @unique
+  phoneVerifiedAt   DateTime?
+  email             String?   @unique
+  emailVerifiedAt   DateTime?
+  passwordHash      String?
+  passwordChangedAt DateTime?
+  role              Role      @default(PATIENT)
+  isActive          Boolean   @default(true)
+  lastLoginAt       DateTime?
+  avatarFileId      String?   @unique
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  avatarFile                 FileAsset?                @relation("UserAvatar", fields: [avatarFileId], references: [id], onDelete: SetNull)
+  doctorProfile              DoctorProfile?
+  patientProfile             PatientProfile?
+  sessions                   AuthSession[]
+  otpChallenges              OtpChallenge[]
+  passwordResetTokens        PasswordResetToken[]
+  nationalIdChangeRequests   NationalIdChangeRequest[] @relation("NationalIdChangeOwner")
+  reviewedNationalIdRequests NationalIdChangeRequest[] @relation("NationalIdChangeReviewer")
+  ownedFiles                 FileAsset[]               @relation("FileOwner")
+  reviewedDoctorProfiles     DoctorProfile[]           @relation("DoctorProfileReviewer")
+  reviewedDoctorCredentials  DoctorCredentialReview[]  @relation("CredentialReviewer")
+  auditEvents                AuditLog[]                @relation("AuditActor")
+  securityEvents             SecurityEvent[]
+  paymentsMade               Payment[]                 @relation("PaymentPayer")
+  payoutApprovals            PayoutApproval[]
+  conversationParticipants   ConversationParticipant[]
+  sentMessages               Message[]
+  messageReadReceipts        MessageReadReceipt[]
+  notifications              Notification[]
+  notificationPreferences    NotificationPreference[]
+  updatedSettings            SystemSetting[]           @relation("SettingUpdater")
+
+  @@index([role, isActive])
+  @@index([createdAt])
+}
+
+model AuthSession {
+  id               String    @id @default(cuid())
+  userId           String
+  refreshTokenHash String    @unique
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  lastUsedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+}
+
+model OtpChallenge {
+  id          String     @id @default(cuid())
+  userId      String?
+  channel     OtpChannel
+  purpose     OtpPurpose
+  destination String
+  codeHash    String
+  attempts    Int        @default(0)
+  maxAttempts Int        @default(5)
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  createdAt   DateTime   @default(now())
+  user        User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([destination, purpose, createdAt])
+  @@index([expiresAt, consumedAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
+model NationalIdChangeRequest {
+  id                  String                 @id @default(cuid())
+  userId              String
+  requestedNationalId String
+  reason              String?
+  status              NationalIdChangeStatus @default(PENDING)
+  reviewedById        String?
+  reviewNote          String?
+  reviewedAt          DateTime?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  user                User                   @relation("NationalIdChangeOwner", fields: [userId], references: [id], onDelete: Restrict)
+  reviewedBy          User?                  @relation("NationalIdChangeReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+  @@index([requestedNationalId, status])
+}
+
+model FileAsset {
+  id                String             @id @default(cuid())
+  ownerUserId       String?
+  storageKey        String             @unique
+  originalName      String
+  mimeType          String
+  sizeBytes         BigInt
+  checksum          String?
+  isPrivate         Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  owner             User?              @relation("FileOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  avatarFor         User?              @relation("UserAvatar")
+  doctorCredentials DoctorCredential[]
+  medicalDocument   MedicalDocument?
+  messageAttachment MessageAttachment?
+
+  @@index([ownerUserId, createdAt])
+}
+
+model AuditLog {
+  id          String         @id @default(cuid())
+  actorUserId String?
+  actorType   AuditActorType
+  action      String
+  entityType  String
+  entityId    String?
+  outcome     AuditOutcome   @default(SUCCESS)
+  reason      String?
+  changes     Json?
+  requestId   String?
+  ipAddress   String?
+  createdAt   DateTime       @default(now())
+  actor       User?          @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([action, createdAt])
+  @@index([requestId])
+}
+
+model SecurityEvent {
+  id        String            @id @default(cuid())
+  userId    String?
+  eventType SecurityEventType
+  success   Boolean
+  ipAddress String?
+  userAgent String?
+  requestId String?
+  details   Json?
+  createdAt DateTime          @default(now())
+  user      User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([eventType, createdAt])
+}

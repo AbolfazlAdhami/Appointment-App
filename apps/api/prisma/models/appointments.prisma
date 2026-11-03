@@ -1,0 +1,155 @@
+model Appointment {
+  id                         String                  @id @default(cuid())
+  patientProfileId           String
+  doctorProfileId            String
+  doctorServiceId            String
+  appointmentType            AppointmentType
+  consultationMode           ConsultationMode
+  status                     AppointmentStatus       @default(PENDING_PAYMENT)
+  startsAt                   DateTime
+  endsAt                     DateTime
+  timezone                   String                  @default("Asia/Tehran")
+  bookedDurationMinutes      Int
+  price                      Decimal                 @db.Decimal(12, 2)
+  currency                   String                  @default("IRR")
+  paymentHoldExpiresAt       DateTime?
+  confirmedAt                DateTime?
+  cancelledAt                DateTime?
+  cancellationReason         String?
+  cancellationPolicyId       String?
+  cancellationPolicySnapshot Json?
+  patientNotes               String?
+  doctorNotes                String?
+  createdAt                  DateTime                @default(now())
+  updatedAt                  DateTime                @updatedAt
+  patientProfile             PatientProfile          @relation(fields: [patientProfileId], references: [id], onDelete: Restrict)
+  doctorProfile              DoctorProfile           @relation(fields: [doctorProfileId], references: [id], onDelete: Restrict)
+  doctorService              DoctorService           @relation(fields: [doctorServiceId], references: [id], onDelete: Restrict)
+  cancellationPolicy         CancellationPolicy?     @relation(fields: [cancellationPolicyId], references: [id], onDelete: Restrict)
+  payments                   Payment[]
+  visitRecord                VisitRecord?
+  onlineConsultation         OnlineConsultation?
+  reschedules                AppointmentReschedule[]
+  attendance                 AppointmentAttendance?
+  conversations              Conversation[]
+
+  @@index([patientProfileId, startsAt])
+  @@index([doctorProfileId, startsAt, endsAt])
+  @@index([doctorProfileId, status, startsAt])
+  @@index([status, paymentHoldExpiresAt])
+  @@index([cancellationPolicyId])
+}
+
+model AppointmentAttendance {
+  id            String           @id @default(cuid())
+  appointmentId String           @unique
+  status        AttendanceStatus @default(SCHEDULED)
+  arrivedAt     DateTime?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  note          String?
+  updatedById   String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  appointment   Appointment      @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
+
+  @@index([status, createdAt])
+}
+
+model AppointmentReschedule {
+  id                String           @id @default(cuid())
+  appointmentId     String
+  requestedStartsAt DateTime
+  requestedEndsAt   DateTime
+  status            RescheduleStatus @default(REQUESTED)
+  reason            String?
+  responseNote      String?
+  respondedAt       DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  appointment       Appointment      @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
+
+  @@index([appointmentId, createdAt])
+  @@index([status, createdAt])
+}
+
+model WaitlistEntry {
+  id               String             @id @default(cuid())
+  patientProfileId String
+  doctorProfileId  String
+  doctorServiceId  String
+  desiredFrom      DateTime?
+  desiredUntil     DateTime?
+  status           WaitlistStatus     @default(ACTIVE)
+  notes            String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  patientProfile   PatientProfile     @relation(fields: [patientProfileId], references: [id], onDelete: Restrict)
+  doctorProfile    DoctorProfile      @relation(fields: [doctorProfileId], references: [id], onDelete: Restrict)
+  doctorService    DoctorService      @relation(fields: [doctorServiceId], references: [id], onDelete: Restrict)
+  offers           AppointmentOffer[]
+
+  @@index([doctorProfileId, status, desiredFrom])
+  @@index([patientProfileId, status])
+}
+
+model AppointmentOffer {
+  id              String                 @id @default(cuid())
+  waitlistEntryId String
+  doctorServiceId String
+  startsAt        DateTime
+  endsAt          DateTime
+  status          AppointmentOfferStatus @default(PENDING)
+  expiresAt       DateTime
+  respondedAt     DateTime?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  waitlistEntry   WaitlistEntry          @relation(fields: [waitlistEntryId], references: [id], onDelete: Restrict)
+  doctorService   DoctorService          @relation(fields: [doctorServiceId], references: [id], onDelete: Restrict)
+
+  @@index([waitlistEntryId, status])
+  @@index([status, expiresAt])
+  @@index([doctorServiceId, startsAt, endsAt])
+}
+
+model OnlineConsultation {
+  id                String                   @id @default(cuid())
+  appointmentId     String                   @unique
+  provider          String                   @default("GOOGLE_MEET")
+  externalMeetingId String?
+  meetingUrl        String?
+  status            OnlineConsultationStatus @default(SCHEDULED)
+  startsAt          DateTime
+  endsAt            DateTime
+  startedAt         DateTime?
+  completedAt       DateTime?
+  metadata          Json?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  appointment       Appointment              @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
+
+  @@index([status, startsAt])
+}
+
+model FollowUpRecommendation {
+  id               String         @id @default(cuid())
+  visitRecordId    String
+  patientProfileId String
+  doctorProfileId  String
+  suggestedFrom    DateTime?
+  suggestedUntil   DateTime?
+  recommendedDate  DateTime?      @db.Date
+  notes            String?
+  status           FollowUpStatus @default(PENDING)
+  respondedAt      DateTime?
+  expiresAt        DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  visitRecord      VisitRecord    @relation(fields: [visitRecordId], references: [id], onDelete: Restrict)
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Restrict)
+  doctorProfile    DoctorProfile  @relation(fields: [doctorProfileId], references: [id], onDelete: Restrict)
+
+  @@index([patientProfileId, status])
+  @@index([doctorProfileId, status])
+  @@index([status, expiresAt])
+}

@@ -1,0 +1,393 @@
+enum Role {
+  PATIENT
+  DOCTOR
+  ADMIN
+}
+
+enum OtpPurpose {
+  SIGNUP
+  LOGIN
+  PHONE_VERIFICATION
+  PASSWORD_RESET
+}
+
+enum OtpChannel {
+  SMS
+  EMAIL
+}
+
+enum NationalIdChangeStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum AuditActorType {
+  USER
+  ADMIN
+  SYSTEM
+  EXTERNAL_SERVICE
+}
+
+enum AuditOutcome {
+  SUCCESS
+  FAILURE
+}
+
+enum SecurityEventType {
+  LOGIN_SUCCESS
+  LOGIN_FAILURE
+  LOGOUT
+  OTP_FAILURE
+  PASSWORD_CHANGED
+  ACCOUNT_LOCKED
+  SUSPICIOUS_ACTIVITY
+  SESSION_REVOKED
+}
+
+enum DoctorCredentialType {
+  MEDICAL_LICENSE
+  MEDICAL_COUNCIL_CARD
+  EDUCATION_CERTIFICATE
+  CV
+  ID_DOCUMENT
+  OTHER
+}
+
+enum CredentialStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  NEEDS_CORRECTION
+  EXPIRED
+}
+
+enum CredentialReviewDecision {
+  APPROVED
+  REJECTED
+  NEEDS_CORRECTION
+}
+
+enum DoctorVerificationStatus {
+  DRAFT
+  PENDING_REVIEW
+  NEEDS_CORRECTION
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum MedicalHistoryStatus {
+  ACTIVE
+  RESOLVED
+  INACTIVE
+}
+
+enum AllergySeverity {
+  MILD
+  MODERATE
+  SEVERE
+  LIFE_THREATENING
+  UNKNOWN
+}
+
+enum AllergyStatus {
+  ACTIVE
+  INACTIVE
+  UNCONFIRMED
+}
+
+enum MedicationStatus {
+  ACTIVE
+  COMPLETED
+  DISCONTINUED
+  ON_HOLD
+}
+
+enum FamilyRelation {
+  MOTHER
+  FATHER
+  SISTER
+  BROTHER
+  CHILD
+  MATERNAL_GRANDMOTHER
+  MATERNAL_GRANDFATHER
+  PATERNAL_GRANDMOTHER
+  PATERNAL_GRANDFATHER
+  OTHER
+  UNKNOWN
+}
+
+enum AppointmentType {
+  REGULAR
+  URGENT
+  PRE_OPERATIVE
+  POST_OPERATIVE
+  FOLLOW_UP
+  CONSULTATION
+}
+
+enum ConsultationMode {
+  IN_PERSON
+  ONLINE
+}
+
+enum AvailabilityOverrideType {
+  AVAILABLE
+  UNAVAILABLE
+}
+
+enum RescheduleStatus {
+  REQUESTED
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
+enum WaitlistStatus {
+  ACTIVE
+  OFFERED
+  BOOKED
+  CANCELLED
+  EXPIRED
+}
+
+enum DayOfWeek {
+  SATURDAY
+  SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+}
+
+enum AppointmentStatus {
+  PENDING_PAYMENT
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum AppointmentOfferStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  CANCELLED
+}
+
+enum AttendanceStatus {
+  SCHEDULED
+  ARRIVED
+  IN_PROGRESS
+  COMPLETED
+  NO_SHOW
+}
+
+enum PaymentProvider {
+  GATEWAY
+  CASH
+  MANUAL
+}
+
+enum PaymentPurpose {
+  CONSULTATION
+  PLATFORM_FEE
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  REFUND_PENDING
+  PARTIALLY_REFUNDED
+  REFUNDED
+}
+
+enum RefundStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+enum FeePayer {
+  PATIENT
+  DOCTOR
+}
+
+enum PlatformFeeType {
+  FIXED
+  PERCENTAGE
+  FIXED_PLUS_PERCENTAGE
+}
+
+enum WalletTransactionType {
+  CONSULTATION_INCOME
+  PLATFORM_FEE
+  REFUND_DEBIT
+  PAYOUT_RESERVATION
+  PAYOUT_RELEASE
+  PAYOUT_COMPLETED
+  ADJUSTMENT_CREDIT
+  ADJUSTMENT_DEBIT
+}
+
+enum WalletTransactionStatus {
+  PENDING
+  POSTED
+  REVERSED
+}
+
+enum PayoutPeriodUnit {
+  WEEKLY
+  MONTHLY
+  CUSTOM
+}
+
+enum PayoutRequestStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  PROCESSING
+  PAID
+  FAILED
+  CANCELLED
+}
+
+enum PayoutTransferStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+}
+
+enum PayoutApprovalDecision {
+  APPROVED
+  REJECTED
+}
+
+enum VisitStatus {
+  IN_PROGRESS
+  COMPLETED
+  AMENDED
+}
+
+enum PrescriptionStatus {
+  DRAFT
+  ISSUED
+  CANCELLED
+  EXPIRED
+}
+
+enum PrescriptionItemStatus {
+  ACTIVE
+  DISCONTINUED
+}
+
+enum DoctorOrderStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum DoctorOrderType {
+  LAB_TEST
+  IMAGING
+  REFERRAL
+  PROCEDURE
+  LIFESTYLE
+  OTHER
+}
+
+enum MedicalDocumentType {
+  LAB_RESULT
+  IMAGING
+  REFERRAL
+  DISCHARGE_SUMMARY
+  PRESCRIPTION
+  OTHER
+}
+
+enum ExternalPrescriptionStatus {
+  PENDING
+  SUBMITTED
+  ACCEPTED
+  REJECTED
+  FAILED
+}
+
+enum OnlineConsultationStatus {
+  SCHEDULED
+  STARTED
+  COMPLETED
+  CANCELLED
+  FAILED
+}
+
+enum FollowUpStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  BOOKED
+  EXPIRED
+  CANCELLED
+}
+
+enum ConversationType {
+  PATIENT_DOCTOR
+  SUPPORT
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  SYSTEM
+}
+
+enum NotificationChannel {
+  IN_APP
+  SMS
+  EMAIL
+}
+
+enum NotificationStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+  READ
+}
+
+enum NotificationDeliveryStatus {
+  PENDING
+  PROCESSING
+  SENT
+  DELIVERED
+  FAILED
+}
+
+enum ClinicMembershipRole {
+  OWNER
+  ADMIN
+  STAFF
+}
+
+enum InsuranceStatus {
+  ACTIVE
+  EXPIRED
+  INACTIVE
+}
+
+enum CancellationPolicyScope {
+  PATIENT
+  DOCTOR
+  BOTH
+}

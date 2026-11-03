@@ -1,0 +1,46 @@
+model SystemSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       Json
+  description String?
+  isSecret    Boolean  @default(false)
+  updatedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  updatedBy   User?    @relation("SettingUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([updatedById])
+}
+
+model ExternalIntegration {
+  id            String          @id @default(cuid())
+  provider      String
+  name          String
+  isEnabled     Boolean         @default(false)
+  config        Json?
+  lastCheckedAt DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  events        ExternalEvent[]
+
+  @@unique([provider, name])
+  @@index([isEnabled, provider])
+}
+
+model ExternalEvent {
+  id              String              @id @default(cuid())
+  integrationId   String
+  externalEventId String?
+  eventType       String
+  status          String              @default("RECEIVED")
+  payload         Json?
+  receivedAt      DateTime            @default(now())
+  processedAt     DateTime?
+  failureReason   String?
+  integration     ExternalIntegration @relation(fields: [integrationId], references: [id], onDelete: Restrict)
+
+  @@unique([integrationId, externalEventId])
+  @@index([integrationId, receivedAt])
+  @@index([eventType, receivedAt])
+  @@index([status, receivedAt])
+}
