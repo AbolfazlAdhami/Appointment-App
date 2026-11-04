@@ -1,5 +1,6 @@
 import { createHmac, randomInt, timingSafeEqual } from "node:crypto";
-import { OtpChannel, OtpPurpose } from "../generated/prisma/client";
+
+import { OtpChannel, OtpPurpose, type Prisma } from "../generated/prisma/client";
 
 import { env } from "../config/env";
 import { prisma } from "../libs/prisma";
@@ -7,23 +8,36 @@ import { createSmsProvider } from "../providers/sms/sms.factory";
 
 const GENERIC_MESSAGE = "اگر اطلاعات واردشده معتبر باشد، کد تأیید برای شما ارسال خواهد شد.";
 
+const INVALID_OTP_MESSAGE = "Invalid or expired verification code";
+
+type PhoneOtpPurpose = Extract<OtpPurpose, "SIGNUP" | "LOGIN">;
+
 interface RequestPhoneOtpInput {
   phone: string;
-  purpose: Extract<OtpPurpose, "SIGNUP" | "LOGIN">;
+  purpose: PhoneOtpPurpose;
 }
 
-interface VerifyPhoneOtpInput {
+export interface VerifyPhoneOtpInput {
   phone: string;
   code: string;
-  purpose: Extract<OtpPurpose, "SIGNUP" | "LOGIN">;
+  purpose: PhoneOtpPurpose;
 }
 
 export interface VerifiedPhoneOtp {
   challengeId: string;
   userId: string | null;
   phone: string;
-  purpose: Extract<OtpPurpose, "SIGNUP" | "LOGIN">;
+  purpose: PhoneOtpPurpose;
 }
+
+export type OtpVerificationResult =
+  | {
+      success: true;
+      data: VerifiedPhoneOtp;
+    }
+  | {
+      success: false;
+    };
 
 function normalizePhone(phone: string): string {
   return phone.replace(/[\s()-]/g, "");
@@ -103,7 +117,6 @@ export async function requestPhoneOtp(input: RequestPhoneOtpInput): Promise<{ me
   const code = generateOtp();
   const codeHash = hashOtp(phone, input.purpose, code);
 
-  // فقط یک Challenge فعال برای این شماره و هدف نگه می‌داریم.
   await prisma.otpChallenge.updateMany({
     where: {
       destination: phone,
@@ -149,20 +162,24 @@ export async function requestPhoneOtp(input: RequestPhoneOtpInput): Promise<{ me
   };
 }
 
-const INVALID_OTP_MESSAGE = "Invalid or expired verification code";
-
-export async function verifyPhoneOtp(input: VerifyPhoneOtpInput): Promise<VerifiedPhoneOtp> {
+/**
+ * Verifies and consumes an OTP using the supplied transaction.
+ *
+ * Important:
+ * Invalid OTP attempts return a failure result instead of throwing.
+ * This allows the transaction to commit the attempt counter update.
+ */
+export async function verifyAndConsumePhoneOtpWithTransaction(tx: Prisma.TransactionClient, input: VerifyPhoneOtpInput): Promise<OtpVerificationResult> {
   const phone = normalizePhone(input.phone);
   const { code, purpose } = input;
 
   if (!/^\+?\d{8,15}$/.test(phone) || !/^\d{6}$/.test(code)) {
-    throw new Error(INVALID_OTP_MESSAGE);
+    return { success: false };
   }
 
   const now = new Date();
 
-  // 1. Find the latest active challenge
-  const challenge = await prisma.otpChallenge.findFirst({
+  const challenge = await tx.otpChallenge.findFirst({
     where: {
       destination: phone,
       purpose,
@@ -173,81 +190,65 @@ export async function verifyPhoneOtp(input: VerifyPhoneOtpInput): Promise<Verifi
     },
   });
 
-  if (!challenge) {
-    throw new Error(INVALID_OTP_MESSAGE);
+  if (!challenge || challenge.expiresAt <= now || challenge.attempts >= challenge.maxAttempts) {
+    return { success: false };
   }
 
-  // 2. Check expiration
-  if (challenge.expiresAt <= now) {
-    throw new Error(INVALID_OTP_MESSAGE);
-  }
-
-  // 3. Check maximum attempts
-  if (challenge.attempts >= challenge.maxAttempts) {
-    throw new Error(INVALID_OTP_MESSAGE);
-  }
-
-  // 4. Hash submitted code
   const submittedHash = Buffer.from(hashOtp(phone, purpose, code), "hex");
 
   const storedHash = Buffer.from(challenge.codeHash, "hex");
 
-  // 5. Constant-time comparison
   const isValid = storedHash.length === submittedHash.length && timingSafeEqual(storedHash, submittedHash);
 
   if (!isValid) {
-    // Increment attempts only if challenge is still active.
-    const attemptUpdate = await prisma.otpChallenge.updateMany({
+    const attemptUpdate = await tx.otpChallenge.updateMany({
       where: {
         id: challenge.id,
         consumedAt: null,
-        expiresAt: {
-          gt: now,
-        },
-        attempts: {
-          lt: challenge.maxAttempts,
-        },
+        expiresAt: { gt: now },
+        attempts: { lt: challenge.maxAttempts },
       },
       data: {
-        attempts: {
-          increment: 1,
-        },
+        attempts: { increment: 1 },
       },
     });
 
     if (attemptUpdate.count !== 1) {
-      throw new Error(INVALID_OTP_MESSAGE);
+      return { success: false };
     }
 
-    // Invalidate challenge when maximum attempts are reached.
-    await prisma.otpChallenge.updateMany({
+    const updatedChallenge = await tx.otpChallenge.findUnique({
       where: {
         id: challenge.id,
-        consumedAt: null,
-        attempts: {
-          gte: challenge.maxAttempts,
-        },
       },
-      data: {
-        consumedAt: now,
+      select: {
+        attempts: true,
+        maxAttempts: true,
+        consumedAt: true,
       },
     });
 
-    throw new Error(INVALID_OTP_MESSAGE);
+    if (updatedChallenge && updatedChallenge.attempts >= updatedChallenge.maxAttempts && updatedChallenge.consumedAt === null) {
+      await tx.otpChallenge.updateMany({
+        where: {
+          id: challenge.id,
+          consumedAt: null,
+        },
+        data: {
+          consumedAt: now,
+        },
+      });
+    }
+
+    return { success: false };
   }
 
-  // 6. Consume OTP atomically.
-  // Only one concurrent request can successfully consume it.
-  const consumed = await prisma.otpChallenge.updateMany({
+  const consumed = await tx.otpChallenge.updateMany({
     where: {
       id: challenge.id,
       consumedAt: null,
-      expiresAt: {
-        gt: now,
-      },
-      attempts: {
-        lt: challenge.maxAttempts,
-      },
+      expiresAt: { gt: now },
+      attempts: { lt: challenge.maxAttempts },
       codeHash: challenge.codeHash,
     },
     data: {
@@ -256,14 +257,32 @@ export async function verifyPhoneOtp(input: VerifyPhoneOtpInput): Promise<Verifi
   });
 
   if (consumed.count !== 1) {
+    return { success: false };
+  }
+
+  return {
+    success: true,
+    data: {
+      challengeId: challenge.id,
+      userId: challenge.userId,
+      phone: challenge.destination,
+      purpose,
+    },
+  };
+}
+
+/**
+ * Backward-compatible wrapper for existing OTP login code.
+ *
+ * The transaction commits failed-attempt updates before the error
+ * is thrown to the caller.
+ */
+export async function verifyPhoneOtp(input: VerifyPhoneOtpInput): Promise<VerifiedPhoneOtp> {
+  const result = await prisma.$transaction((tx) => verifyAndConsumePhoneOtpWithTransaction(tx, input));
+
+  if (!result.success) {
     throw new Error(INVALID_OTP_MESSAGE);
   }
 
-  // 7. Return verified challenge information.
-  return {
-    challengeId: challenge.id,
-    userId: challenge.userId,
-    phone: challenge.destination,
-    purpose,
-  };
+  return result.data;
 }

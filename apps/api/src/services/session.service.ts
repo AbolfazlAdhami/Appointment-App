@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
+import type { Prisma } from "../generated/prisma/client";
 
 import { prisma } from "../libs/prisma";
 import { env } from "../config/env";
@@ -22,12 +23,16 @@ function getRefreshTokenExpiration(): Date {
   return new Date(Date.now() + env.refreshTokenTtlSeconds * 1000);
 }
 
-export async function createSession(userId: string): Promise<SessionTokens> {
+/**
+ * Creates a session using an existing Prisma transaction.
+ * This function does not start or commit a transaction.
+ */
+export async function createSessionWithTransaction(tx: Prisma.TransactionClient, userId: string): Promise<SessionTokens> {
   const refreshToken = generateRefreshToken();
   const refreshTokenHash = hashRefreshToken(refreshToken);
   const expiresAt = getRefreshTokenExpiration();
 
-  const session = await prisma.authSession.create({
+  const session = await tx.authSession.create({
     data: {
       userId,
       refreshTokenHash,
@@ -45,6 +50,14 @@ export async function createSession(userId: string): Promise<SessionTokens> {
     refreshToken,
     refreshTokenExpiresAt: expiresAt,
   };
+}
+
+/**
+ * Creates a session independently.
+ * Used by the existing email/password login.
+ */
+export async function createSession(userId: string): Promise<SessionTokens> {
+  return prisma.$transaction((tx) => createSessionWithTransaction(tx, userId));
 }
 
 export async function refreshSession(currentRefreshToken: string): Promise<SessionTokens> {
@@ -74,7 +87,6 @@ export async function refreshSession(currentRefreshToken: string): Promise<Sessi
   const newRefreshTokenHash = hashRefreshToken(newRefreshToken);
   const newExpiresAt = getRefreshTokenExpiration();
 
-  // Atomic rotation: only one concurrent request can rotate this token.
   const updated = await prisma.authSession.updateMany({
     where: {
       id: session.id,

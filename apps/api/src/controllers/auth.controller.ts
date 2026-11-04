@@ -1,14 +1,52 @@
 import type { Request, Response } from "express";
-import { loginUser } from "../services/auth.service";
 import { revokeSession, refreshSession } from "../services/session.service";
 import type { AuthenticatedRequest } from "../middlewares/auth.middleware";
-
 import { AuthUserResponseSchema, LogoutResponseSchema } from "../schemas/auth-response.schema";
+import { registerUser, loginUser } from "../services/auth.service";
+import { requestPhoneOtp } from "../services/otp.service";
+import { RegisterSchema, RequestPhoneOtpSchema } from "../schemas/auth-request.schema";
 
-export function register(_req: Request, res: Response): void {
-  res.status(410).json({
-    message: "Registration is available through phone OTP.",
-  });
+export async function register(req: Request, res: Response): Promise<void> {
+  try {
+    const validation = RegisterSchema.safeParse(req.body);
+
+    if (!validation.success) {
+      res.status(400).json({
+        message: "Invalid registration data",
+        errors: validation.error.flatten(),
+      });
+      return;
+    }
+
+    const result = await registerUser(validation.data);
+
+    res.cookie("refreshToken", result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/api/auth",
+      maxAge: result.refreshTokenExpiresAt.getTime() - Date.now(),
+    });
+
+    res.status(201).json({
+      user: result.user,
+      accessToken: result.accessToken,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Registration failed";
+
+    if (message.includes("already registered")) {
+      res.status(409).json({ message });
+      return;
+    }
+
+    if (message.includes("verification code")) {
+      res.status(400).json({ message });
+      return;
+    }
+
+    res.status(400).json({ message });
+  }
 }
 
 export async function login(req: Request, res: Response): Promise<void> {
@@ -75,17 +113,10 @@ export async function logout(req: Request, res: Response): Promise<void> {
   }
 }
 
-
-export async function refresh(
-  req: Request,
-  res: Response,
-): Promise<void> {
+export async function refresh(req: Request, res: Response): Promise<void> {
   const refreshToken = req.cookies?.refreshToken;
 
-  if (
-    typeof refreshToken !== "string" ||
-    refreshToken.length === 0
-  ) {
+  if (typeof refreshToken !== "string" || refreshToken.length === 0) {
     res.status(401).json({
       message: "Refresh token is required",
     });
@@ -120,7 +151,6 @@ export async function refresh(
   }
 }
 
-
 export async function me(req: AuthenticatedRequest, res: Response): Promise<void> {
   if (!req.user) {
     res.status(401).json({
@@ -143,3 +173,26 @@ export async function me(req: AuthenticatedRequest, res: Response): Promise<void
   );
 }
 
+export async function requestOtp(req: Request, res: Response): Promise<void> {
+  const validation = RequestPhoneOtpSchema.safeParse(req.body);
+
+  if (!validation.success) {
+    res.status(400).json({
+      message: "Invalid OTP request",
+      errors: validation.error.flatten(),
+    });
+    return;
+  }
+
+  try {
+    const result = await requestPhoneOtp(validation.data);
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error("[AUTH][OTP_REQUEST]", error);
+
+    res.status(500).json({
+      message: "Unable to process OTP request",
+    });
+  }
+}
