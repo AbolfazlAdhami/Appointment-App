@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 import { Role } from "../generated/prisma/client";
 import { prisma } from "../libs/prisma";
-import { generateAccessToken } from "../utils/jwt";
+import { createSession } from "./session.service";
 
 export interface AuthResponse {
   user: {
@@ -10,7 +10,9 @@ export interface AuthResponse {
     email: string | null;
     role: Role;
   };
-  token: string;
+  accessToken: string;
+  refreshToken: string;
+  refreshTokenExpiresAt: Date;
 }
 
 interface LoginInput {
@@ -34,7 +36,6 @@ export async function loginUser(input: LoginInput): Promise<AuthResponse> {
     where: { email },
   });
 
-  // Use the same error for unknown email and missing password hash.
   if (!user || !user.passwordHash) {
     throw new Error("Invalid email or password");
   }
@@ -49,13 +50,17 @@ export async function loginUser(input: LoginInput): Promise<AuthResponse> {
     throw new Error("Invalid email or password");
   }
 
-  const token = generateAccessToken({
-    userId: user.id,
-    role: user.role,
+  const session = await createSession(user.id);
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { lastLoginAt: new Date() },
   });
 
   return {
-    token,
     user: toAuthUser(user),
+    accessToken: session.accessToken,
+    refreshToken: session.refreshToken,
+    refreshTokenExpiresAt: session.refreshTokenExpiresAt,
   };
 }

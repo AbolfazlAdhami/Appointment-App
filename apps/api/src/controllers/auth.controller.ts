@@ -30,26 +30,27 @@ export async function login(req: Request, res: Response): Promise<void> {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
+    if (typeof email !== "string" || typeof password !== "string" || !email.trim() || !password) {
       res.status(400).json({
         message: "Email and password are required",
       });
-
       return;
     }
 
-    const result = await loginUser({
-      email,
-      password,
+    const result = await loginUser({ email, password });
+
+    res.cookie("refreshToken", result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/api/auth",
+      maxAge: result.refreshTokenExpiresAt.getTime() - Date.now(),
     });
 
-    res.cookie(COOKIE_NAME, result.token, cookieOptions);
-
-    res.json(
-      AuthUserResponseSchema.parse({
-        user: result.user,
-      }),
-    );
+    res.status(200).json({
+      user: result.user,
+      accessToken: result.accessToken,
+    });
   } catch (error) {
     res.status(401).json({
       message: error instanceof Error ? error.message : "Login failed",
