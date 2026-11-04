@@ -1,24 +1,9 @@
-import { Request, Response } from "express";
+import type { Request, Response } from "express";
 import { loginUser } from "../services/auth.service";
-import { AuthenticatedRequest } from "../middlewares/auth.middleware";
-import { AuthUserResponseSchema, LogoutResponseSchema, ErrorResponseSchema } from "../schemas/auth-response.schema";
+import { revokeSession } from "../services/session.service";
+import type { AuthenticatedRequest } from "../middlewares/auth.middleware";
 
-const COOKIE_NAME = "accessToken";
-
-const cookieOptions = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "lax" as const,
-  path: "/",
-  maxAge: 7 * 24 * 60 * 60 * 1000,
-};
-
-const clearCookieOptions = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "lax" as const,
-  path: "/",
-};
+import { AuthUserResponseSchema, LogoutResponseSchema } from "../schemas/auth-response.schema";
 
 export function register(_req: Request, res: Response): void {
   res.status(410).json({
@@ -58,25 +43,49 @@ export async function login(req: Request, res: Response): Promise<void> {
   }
 }
 
-export async function logout(_req: Request, res: Response): Promise<void> {
-  res.clearCookie(COOKIE_NAME, clearCookieOptions);
+export async function logout(req: Request, res: Response): Promise<void> {
+  try {
+    const authenticatedReq = req as AuthenticatedRequest;
 
-  res.status(200).json(
-    LogoutResponseSchema.parse({
-      message: "Logged out successfully",
-    }),
-  );
+    if (!authenticatedReq.user) {
+      res.status(401).json({
+        message: "Authentication required",
+      });
+      return;
+    }
+
+    await revokeSession(authenticatedReq.user.sessionId, authenticatedReq.user.userId);
+
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/api/auth",
+    });
+
+    res.status(200).json(
+      LogoutResponseSchema.parse({
+        message: "Logged out successfully",
+      }),
+    );
+  } catch {
+    res.status(500).json({
+      message: "Logout failed",
+    });
+  }
 }
 
 export async function me(req: AuthenticatedRequest, res: Response): Promise<void> {
   if (!req.user) {
-    res.status(401).json({ message: "Authentication required" });
+    res.status(401).json({
+      message: "Authentication required",
+    });
     return;
   }
 
   const { userId, email, firstName, lastName, role } = req.user;
 
-  res.json(
+  res.status(200).json(
     AuthUserResponseSchema.parse({
       user: {
         id: userId,

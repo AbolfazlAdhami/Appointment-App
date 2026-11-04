@@ -6,6 +6,7 @@ import { verifyAccessToken } from "../utils/jwt";
 export interface AuthenticatedRequest extends Request {
   user?: {
     userId: string;
+    sessionId: string;
     email: string | null;
     firstName: string;
     lastName: string;
@@ -13,64 +14,76 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
-export async function authenticate(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
-  const token = req.cookies?.accessToken;
-
-  if (!token) {
-    res.status(401).json({ message: "Authentication required" });
-    return;
-  }
-
-  let payload;
-
+export async function authenticate(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    payload = verifyAccessToken(token);
-  } catch {
-    res.status(401).json({ message: "Invalid or expired token" });
-    return;
-  }
+    const authHeader = req.headers.authorization;
 
-  try {
-    const user = await prisma.user.findUnique({
-      where: { id: payload.userId },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-        isActive: true,
-      },
-    });
-
-    if (!user || !user.isActive) {
-      res.status(401).json({ message: "User not found or inactive" });
-      return;
-    }
-
-    req.user = {
-      userId: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: user.role,
-    };
-
-    next();
-  } catch (error) {
-    next(error);
-  }
-}
-
-export function authorize(...roles: Role[]) {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
-    if (!req.user) {
+    if (!authHeader?.startsWith("Bearer ")) {
       res.status(401).json({ message: "Authentication required" });
       return;
     }
 
-    if (!roles.includes(req.user.role)) {
-      res.status(403).json({ message: "Forbidden" });
+    const token = authHeader.slice(7).trim();
+
+    if (!token) {
+      
+      res.status(401).json({ message: "Authentication required" });
+      return;
+    }
+
+    const payload = verifyAccessToken(token);
+
+    const session = await prisma.authSession.findUnique({
+      where: {
+        id: payload.sessionId,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+            isActive: true,
+          },
+        },
+      },
+    });
+
+    const now = new Date();
+
+    if (!session || session.userId !== payload.userId || session.revokedAt !== null || session.expiresAt <= now || !session.user.isActive) {
+      res.status(401).json({ message: "Invalid or expired session" });
+      return;
+    }
+
+    (req as AuthenticatedRequest).user = {
+      userId: session.user.id,
+      sessionId: session.id,
+      email: session.user.email,
+      firstName: session.user.firstName,
+      lastName: session.user.lastName,
+      role: session.user.role,
+    };
+
+    next();
+  } catch {
+    res.status(401).json({ message: "Invalid or expired access token" });
+  }
+}
+
+export function authorize(...roles: Role[]) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const authenticatedReq = req as AuthenticatedRequest;
+
+    if (!authenticatedReq.user) {
+      res.status(401).json({ message: "Authentication required" });
+      return;
+    }
+
+    if (!roles.includes(authenticatedReq.user.role)) {
+      res.status(403).json({ message: "Access forbidden" });
       return;
     }
 
