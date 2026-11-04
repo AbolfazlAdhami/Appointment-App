@@ -3,7 +3,7 @@ import { z } from "zod";
 export const AuthUserSchema = z.object({
   id: z.string(),
   name: z.string(),
-  email: z.string().email(),
+  email: z.string().email().nullable(),
   role: z.enum(["PATIENT", "DOCTOR", "ADMIN"]),
 });
 

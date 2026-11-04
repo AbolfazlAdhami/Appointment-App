@@ -6,7 +6,7 @@ import { verifyAccessToken } from "../utils/jwt";
 export interface AuthenticatedRequest extends Request {
   user?: {
     userId: string;
-    email: string;
+    email: string | null;
     firstName: string;
     lastName: string;
     role: Role;

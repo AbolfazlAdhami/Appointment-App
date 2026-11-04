@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { loginUser, registerUser } from "../services/auth.service";
+import { loginUser } from "../services/auth.service";
 import { AuthenticatedRequest } from "../middlewares/auth.middleware";
 import { AuthUserResponseSchema, LogoutResponseSchema, ErrorResponseSchema } from "../schemas/auth-response.schema";
 
@@ -20,36 +20,10 @@ const clearCookieOptions = {
   path: "/",
 };
 
-export async function register(req: Request, res: Response): Promise<void> {
-  try {
-    const { name, email, password } = req.body;
-
-    if (!name || !email || !password) {
-      res.status(400).json({
-        message: "Name, email and password are required",
-      });
-
-      return;
-    }
-
-    const result = await registerUser({
-      name,
-      email,
-      password,
-    });
-
-    res.cookie(COOKIE_NAME, result.token, cookieOptions);
-
-    res.status(201).json(
-      AuthUserResponseSchema.parse({
-        user: result.user,
-      }),
-    );
-  } catch (error) {
-    res.status(400).json({
-      message: error instanceof Error ? error.message : "Registration failed",
-    });
-  }
+export function register(_req: Request, res: Response): void {
+  res.status(410).json({
+    message: "Registration is available through phone OTP.",
+  });
 }
 
 export async function login(req: Request, res: Response): Promise<void> {
