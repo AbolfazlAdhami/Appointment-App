@@ -1,29 +1,67 @@
-# Appointment App
+# Pezeshki Documentation
 
-MERN stack appointment application.
+مستندات فنی پروژه Pezeshki — سامانه نوبت‌دهی پزشک و بیمار
 
-## Applications
+> وضعیت این مستندات: نسخه اولیه قابل بازبینی  
+> اصل مهم: وضعیت هر قابلیت باید با کد و migrationهای واقعی تطبیق داده شود. وجود یک سند به معنی پیاده‌سازی یا تأیید عملیاتی آن قابلیت نیست.
 
-- `apps/web` — Customer and Provider application
-- `apps/admin` — Admin dashboard
-- `apps/api` — Express REST API
+## شروع سریع
 
-## Shared packages
+1. [نقشه راه](roadmap.md) را برای ترتیب توسعه بخوانید.
+2. [نمای معماری](architecture/overview.md) را برای شناخت اجزای سیستم بخوانید.
+3. برای راه‌اندازی محیط توسعه از [راهنمای توسعه](development/setup.md) استفاده کنید.
+4. برای API احراز هویت به [مستندات Auth](api/auth.md) و برای جزئیات طراحی آن به [معماری Authentication](architecture/authentication.md) مراجعه کنید.
 
-- `@appointment/types`
-- `@appointment/validation`
-- `@appointment/config`
-- `@appointment/utils`
+## فهرست مستندات
 
-## Stack
+```text
+docs/
+├── README.md
+├── roadmap.md
+├── architecture/
+│   ├── overview.md
+│   ├── database-design.md
+│   └── authentication.md
+├── api/
+│   └── auth.md
+├── development/
+│   ├── setup.md
+│   ├── coding-standards.md
+│   └── testing.md
+└── deployment/
+    ├── docker.md
+    ├── environment.md
+    └── production.md
+```
 
-- React
-- Vite
-- Node.js
-- Express
-- TypeScript
-- MongoDB
-- Mongoose
-- Zod
+## وضعیت مستندات
 
+| سند | کاربرد |
+|---|---|
+| `roadmap.md` | فازها، وابستگی‌ها و معیار تکمیل |
+| `architecture/overview.md` | معماری کلان Monorepo |
+| `architecture/database-design.md` | اصول مدل‌سازی داده و دامنه‌ها |
+| `architecture/authentication.md` | تصمیم‌های طراحی Auth و Session |
+| `api/auth.md` | قرارداد فعلی Endpointهای Auth |
+| `development/setup.md` | راه‌اندازی محیط توسعه |
+| `development/coding-standards.md` | استانداردهای کدنویسی |
+| `development/testing.md` | راهبرد تست |
+| `deployment/*.md` | ملاحظات Docker، تنظیمات و Production |
 
+## قواعد نگهداری مستندات
+
+- هر تغییر API، schema یا رفتار امنیتی باید همراه با به‌روزرسانی سند مرتبط باشد.
+- وضعیت‌ها را صادقانه ثبت کنید: `Implemented`، `Partial`، `Planned` یا `Not verified`.
+- هیچ Secret، Token واقعی، OTP واقعی یا داده شخصی واقعی در مستندات و Git قرار ندهید.
+- مثال‌های این اسناد صرفاً داده ساختگی هستند.
+- مسیرها و نام متغیرهای محیطی را پیش از استفاده با کد واقعی تطبیق دهید.
+- تصمیم‌های معماری مهم را با تاریخ، زمینه و پیامدها ثبت کنید.
+
+## وضعیت فعلی شناخته‌شده
+
+- Monorepo شامل `apps/api`، `apps/web`، `apps/admin` و `packages/types` است.
+- API بر پایه Express 5، TypeScript، Prisma 7 و PostgreSQL توسعه داده می‌شود.
+- احراز هویت پایه شامل ثبت‌نام بیمار با OTP، ورود ایمیل/رمز عبور، Access JWT، Refresh Cookie و Session دیتابیسی پیاده‌سازی و به‌صورت دستی آزمایش شده است.
+- OTP Login، Password Reset، Email Verification، تست خودکار کامل و سخت‌سازی Production هنوز نیازمند تکمیل/تأیید هستند.
+
+این اطلاعات باید در هر Release با وضعیت واقعی کد بازبینی شوند.
