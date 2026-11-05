@@ -54,6 +54,31 @@ describe("Authentication Integration", () => {
   });
 
   it("completes the authentication lifecycle", async () => {
+    // Invalid OTP request
+    const invalidOtpRequest = await request(app).post("/api/auth/otp/request").send({ phone: "", purpose: "SIGNUP" });
+
+    expect(invalidOtpRequest.status).toBe(400);
+
+    // Invalid registration payload
+    const invalidRegistrationPayload = await request(app).post("/api/auth/register").send({
+      firstName: "",
+      lastName: "",
+    });
+
+    expect(invalidRegistrationPayload.status).toBe(400);
+
+    // Missing login credentials
+    const missingCredentials = await request(app).post("/api/auth/login").send({
+      email: fixture.email,
+    });
+
+    expect(missingCredentials.status).toBe(400);
+
+    // Refresh without cookie
+    const missingRefreshToken = await request(app).post("/api/auth/refresh");
+
+    expect(missingRefreshToken.status).toBe(401);
+
     // 1. Request signup OTP
     const otpResponse = await request(app).post("/api/auth/otp/request").send({
       phone: fixture.phone,
@@ -154,6 +179,15 @@ describe("Authentication Integration", () => {
     // 10. Refresh session
     const refresh = await request(app).post("/api/auth/refresh").set("Cookie", loginCookie!.split(";")[0]);
 
+    // Refresh without a valid token
+    const invalidRefresh = await request(app).post("/api/auth/refresh").set("Cookie", "refreshToken=invalid-token");
+
+    expect(invalidRefresh.status).toBe(401);
+
+    const invalidRefreshCookie = invalidRefresh.headers["set-cookie"]?.find((cookie: string) => cookie.startsWith("refreshToken="));
+
+    expect(invalidRefreshCookie).toContain("Expires=");
+
     expect(refresh.status).toBe(200);
     expect(refresh.body.accessToken).toBeTruthy();
 
@@ -185,5 +219,10 @@ describe("Authentication Integration", () => {
     const initialSession = await request(app).get("/api/auth/me").set("Authorization", `Bearer ${initialAccessToken}`);
 
     expect(initialSession.status).toBe(200);
+
+    // Invalid access token
+    const invalidAccessToken = await request(app).get("/api/auth/me").set("Authorization", "Bearer invalid-token");
+
+    expect(invalidAccessToken.status).toBe(401);
   });
 });
