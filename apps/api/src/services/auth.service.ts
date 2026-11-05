@@ -3,7 +3,19 @@ import { Role, OtpPurpose } from "../generated/prisma/client";
 
 import { prisma } from "../libs/prisma";
 import { verifyAndConsumePhoneOtpWithTransaction } from "./otp.service";
-import { createSession, createSessionWithTransaction } from "./session.service";
+import { createSessionWithTransaction } from "./session.service";
+
+export type AuthErrorCode = "INVALID_INPUT" | "DUPLICATE_USER" | "INVALID_OTP" | "INVALID_CREDENTIALS";
+
+export class AuthServiceError extends Error {
+  constructor(
+    public readonly code: AuthErrorCode,
+    message: string,
+  ) {
+    super(message);
+    this.name = "AuthServiceError";
+  }
+}
 
 export interface AuthResponse {
   user: {
@@ -54,21 +66,21 @@ export async function registerUser(input: RegisterInput): Promise<AuthResponse> 
   const email = input.email?.trim().toLowerCase() || null;
 
   if (!/^\+?\d{8,15}$/.test(phone)) {
-    throw new Error("Invalid phone number");
+    throw new AuthServiceError("INVALID_INPUT", "Invalid phone number");
   }
 
   if (!firstName || !lastName || !nationalId) {
-    throw new Error("Registration information is incomplete");
+    throw new AuthServiceError("INVALID_INPUT", "Registration information is incomplete");
   }
 
   if (input.password && !email) {
-    throw new Error("Email is required when setting a password");
+    throw new AuthServiceError("INVALID_INPUT", "Email is required when setting a password");
   }
 
   const dateOfBirth = new Date(input.dateOfBirth);
 
   if (!input.dateOfBirth || Number.isNaN(dateOfBirth.getTime()) || dateOfBirth >= new Date()) {
-    throw new Error("Invalid date of birth");
+    throw new AuthServiceError("INVALID_INPUT", "Invalid date of birth");
   }
 
   // Hash before opening the transaction to avoid holding
@@ -147,10 +159,10 @@ export async function registerUser(input: RegisterInput): Promise<AuthResponse> 
 
   if (!result.success) {
     if (result.reason === "duplicate") {
-      throw new Error("Phone, national ID, or email is already registered");
+      throw new AuthServiceError("DUPLICATE_USER", "Phone, national ID, or email is already registered");
     }
 
-    throw new Error("Invalid or expired verification code");
+    throw new AuthServiceError("INVALID_OTP", "Invalid or expired verification code");
   }
 
   return {
@@ -168,25 +180,25 @@ export async function loginUser(input: LoginInput): Promise<AuthResponse> {
     where: { email },
   });
 
-  if (!user || !user.passwordHash) {
-    throw new Error("Invalid email or password");
-  }
-
-  if (!user.isActive) {
-    throw new Error("User account is inactive");
+  if (!user || !user.passwordHash || !user.isActive) {
+    throw new AuthServiceError("INVALID_CREDENTIALS", "Invalid email or password");
   }
 
   const passwordIsValid = await bcrypt.compare(input.password, user.passwordHash);
 
   if (!passwordIsValid) {
-    throw new Error("Invalid email or password");
+    throw new AuthServiceError("INVALID_CREDENTIALS", "Invalid email or password");
   }
 
-  const session = await createSession(user.id);
+  const session = await prisma.$transaction(async (tx) => {
+    const newSession = await createSessionWithTransaction(tx, user.id);
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { lastLoginAt: new Date() },
+    await tx.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
+
+    return newSession;
   });
 
   return {

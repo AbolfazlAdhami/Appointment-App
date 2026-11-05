@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import { revokeSession, refreshSession } from "../services/session.service";
 import type { AuthenticatedRequest } from "../middlewares/auth.middleware";
 import { AuthUserResponseSchema, LogoutResponseSchema } from "../schemas/auth-response.schema";
-import { registerUser, loginUser } from "../services/auth.service";
+import { registerUser, loginUser, AuthServiceError } from "../services/auth.service";
 import { requestPhoneOtp } from "../services/otp.service";
 import { RegisterSchema, RequestPhoneOtpSchema } from "../schemas/auth-request.schema";
 
@@ -33,19 +33,22 @@ export async function register(req: Request, res: Response): Promise<void> {
       accessToken: result.accessToken,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Registration failed";
+    if (error instanceof AuthServiceError) {
+      switch (error.code) {
+        case "DUPLICATE_USER":
+          res.status(409).json({ message: error.message });
+          return;
 
-    if (message.includes("already registered")) {
-      res.status(409).json({ message });
-      return;
+        case "INVALID_OTP":
+        case "INVALID_INPUT":
+          res.status(400).json({ message: error.message });
+          return;
+      }
     }
 
-    if (message.includes("verification code")) {
-      res.status(400).json({ message });
-      return;
-    }
-
-    res.status(400).json({ message });
+    res.status(500).json({
+      message: "Registration failed",
+    });
   }
 }
 
