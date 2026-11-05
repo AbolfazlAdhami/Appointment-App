@@ -1,6 +1,11 @@
 import dotenv from "dotenv";
 
-dotenv.config();
+const requestedNodeEnv = process.env.NODE_ENV;
+
+dotenv.config({
+  path: requestedNodeEnv === "test" ? ".env.test" : ".env",
+  override: requestedNodeEnv === "test",
+});
 
 function readPort(value: string | undefined, fallback: number): number {
   const port = Number(value ?? fallback);
@@ -27,7 +32,7 @@ const port = readPort(process.env.PORT, 4000);
 
 const databaseUrl = process.env.DATABASE_URL;
 const jwtSecret = process.env.JWT_SECRET;
-const otpSecret = process.env.OTP_SECRET ?? jwtSecret;
+const otpSecret = process.env.OTP_SECRET;
 
 if (!databaseUrl) {
   throw new Error("DATABASE_URL is required");
