@@ -32,9 +32,11 @@
 - Secret، Token واقعی، OTP واقعی یا داده شخصی واقعی را در مستندات و Git قرار ندهید.
 - مسیرها، scriptها و نام متغیرهای محیطی را با کد تطبیق دهید.
 
-## وضعیت فعلی
+## وضعیت فعلی (بازبینی 2026-11-07)
 
 - Monorepo شامل `apps/api`, `apps/web`, `apps/admin` و `packages/*` است.
 - API از Express 5، TypeScript، Prisma 7 و PostgreSQL استفاده می‌کند.
-- ثبت‌نام OTP، ورود ایمیل/رمز عبور و OTP، JWT، Refresh Cookie و Session دیتابیسی پیاده‌سازی شده و تست‌های فعلی در راهبرد [Testing](development/testing.md) اجرا می‌شوند.
-- Password Reset و Phone Verification کامل نیستند. Migration status محیط توسعه نیز pending migration گزارش کرده است؛ قبل از هر migrate روی داده موجود، SQL را بازبینی و backup تهیه کنید.
+- ثبت‌نام OTP، ورود ایمیل/رمز عبور و OTP، JWT، Refresh Cookie و Session دیتابیسی پیاده‌سازی شده؛ آخرین اجرای suite: 4 فایل و 19 تست موفق.
+- Password Reset، Phone Verification و HTTP rate limiting کامل نیستند.
+- `prisma validate` موفق بوده؛ `prisma migrate status` در محیط توسعه یک migration pending گزارش کرده است. جزئیات و هشدار تغییرات destructive در [نقشه راه](roadmap.md) ثبت شده. Migrationها روی دیتابیس دارای داده اعمال نشده‌اند.
+- Lint اجرا نشده/ناموفق است، چون نصب محلی dependency مربوط به ESLint ناقص است؛ build و typecheck موفق بوده‌اند.

@@ -1,7 +1,7 @@
 # Authentication API
 
 **Base path:** `/api/auth`  
-**Status:** قرارداد اولیه بر اساس مسیرهای فعلی گزارش‌شده؛ قبل از انتشار نسخه API با Controller و Router تطبیق داده شود.
+**Status:** قرارداد endpointهای فعلی Auth (بازبینی 2026-11-07). Password Reset و Phone Verification در حال حاضر ارائه نمی‌شوند.
 
 ## 1. Endpoint Summary
 
@@ -80,11 +80,9 @@ Refresh Token باید از طریق `Set-Cookie` ارسال شود، نه در 
 
 برای ایمیل ناشناخته و رمز اشتباه، پاسخ عمومی یکسان استفاده شود تا امکان تشخیص وجود حساب کاهش یابد. رفتار حساب غیرفعال باید مطابق سیاست امنیتی محصول بازبینی شود؛ در حال حاضر پاسخ اختصاصی `User account is inactive` گزارش شده است.
 
-## 5. Refresh
-
 `POST /api/auth/login/otp` بدنه `{ "phone": "+989121234567", "code": "123456" }` می‌پذیرد. OTP باید برای purpose برابر `LOGIN` صادر شده باشد. پاسخ موفق مانند ورود با رمز عبور شامل `user` و `accessToken` است و Refresh Cookie تنظیم می‌شود. OTP نامعتبر، منقضی یا مصرف‌شده رد می‌شود.
 
-## 6. Refresh
+## 5. Refresh
 
 `POST /api/auth/refresh`
 
@@ -149,14 +147,15 @@ Authorization: Bearer <access-token>
 
 ## 8. Error Handling
 
-نمونه پیام‌های مشاهده‌شده:
+نمونه پاسخ‌های فعلی:
 - `Invalid email or password`
-- `User account is inactive`
 - `Invalid or expired session`
 - `Invalid or expired refresh token`
 - `Invalid or expired access token`
+- payload نامعتبر OTP/login: `400` همراه جزئیات validation
+- OTP اشتباه/مصرف‌شده: `401`
 
-کدهای HTTP و شکل نهایی Error Response باید از Controllerهای واقعی استخراج و در تست قرارداد تثبیت شوند.
+ورود رمز و OTP برای حساب غیرفعال با خطای عمومی اعتبارنامه رد می‌شود.
 
 ## 9. Client Integration Notes
 

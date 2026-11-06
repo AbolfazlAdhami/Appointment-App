@@ -2,7 +2,7 @@
 
 **نوع سند:** نقشه راه فنی و محصول  
 **وضعیت:** پیشنهادی و قابل بازبینی  
-**آخرین بازبینی:** 2026-11-05
+**آخرین بازبینی:** 2026-11-07
 
 ## 1. چشم‌انداز محصول
 
@@ -29,14 +29,14 @@ Pezeshki یک سامانه نوبت‌دهی پزشکی با سه سطح اصل�
 | حوزه | وضعیت | توضیح |
 |---|---|---|
 | Monorepo و Workspaceها | Implemented / بازبینی لازم | ساختار `apps/*` و `packages/*` موجود است |
-| PostgreSQL و Prisma | Implemented | اتصال و migrationها ایجاد شده‌اند؛ وضعیت schema باید با migrationها تطبیق داده شود |
+| PostgreSQL و Prisma | Partial / migration pending | اعتبارسنجی schema موفق؛ یک migration در DB توسعه pending و migration بزرگ قبلی نیازمند بازبینی است |
 | Patient registration با OTP | Implemented / دستی تست شده | ساخت User و PatientProfile و Session |
-| Email/password login | Implemented / دستی تست شده | تست رمز صحیح، اشتباه و حساب غیرفعال انجام شده |
-| Access JWT و Session middleware | Implemented / دستی تست شده | اعتبارسنجی Session و وضعیت حساب |
-| Refresh rotation | Implemented / دستی تست شده | بررسی رد شدن Token قبلی انجام شده |
-| Logout و لغو Session | Implemented / دستی تست شده | Access و Refresh قبلی پس از لغو رد شده‌اند |
-| OTP Login | Implemented / automated integration test | OTP مصرف‌شده و کد malformed رد می‌شوند |
-| تست خودکار Auth | Partial / current suite passing | سناریوهای پایه Auth پوشش دارند؛ Password Reset و Phone Verification هنوز ندارند |
+| Email/password login | Implemented / integration-tested | جریان موفق و رد درخواست‌های نامعتبر پوشش داده شده |
+| Access JWT و Session middleware | Implemented / integration-tested | اعتبارسنجی Session و وضعیت حساب |
+| Refresh rotation | Implemented / integration-tested | Rotation، reuse rejection و race test |
+| Logout و لغو Session | Implemented / integration-tested | Access و Refresh قبلی پس از لغو رد می‌شوند |
+| OTP Login | Implemented / automated integration test | OTP مصرف‌شده، malformed و استفاده مجدد رد می‌شوند |
+| تست خودکار Auth | Partial / 19 passing | چهار فایل تست پاس؛ Reset/Phone Verification و تست‌های production hardening ندارند |
 | Authorization | Planned | Role/Permission و مالکیت منابع |
 | Doctor / Appointment | Planned | هنوز در نقشه راه |
 | Frontend workflowها | Planned / در حال توسعه مستقل | نیازمند اتصال به APIهای پایدار |
@@ -50,7 +50,7 @@ Pezeshki یک سامانه نوبت‌دهی پزشکی با سه سطح اصل�
 کارها:
 - [x] تثبیت npm workspaces و اسکریپت‌های ریشه.
 - [x] مستندسازی راه‌اندازی پروژه.
-- [x] تثبیت TypeScript configuration و lint/typecheck.
+- [x] تثبیت TypeScript configuration و typecheck; lint script موجود است.
 - [x] ثبت قواعد مدیریت Environment و Secretها.
 - [ ] تأیید migrationهای موجود و وضعیت دیتابیس؛ سیاست backup/restore و دستورات مستند شده‌اند.
 
@@ -59,7 +59,7 @@ Pezeshki یک سامانه نوبت‌دهی پزشکی با سه سطح اصل�
 - Build برنامه‌ها از دستورات مستندشده قابل اجرا باشد.
 - هیچ Secret در Git نباشد.
 
-**وضعیت اجرا (2026-11-07):** دستورات build/test/typecheck و migration در workspaceها موجودند؛ راه‌اندازی و backup/restore مستند شده است. `prisma validate` موفق است. lint موجود است اما در این محیط به علت نصب ناقص محلی ESLint dependency اجرا نشد. `prisma migrate status` گزارش داد migration `20261104220451_add_auth_otp_sessions` هنوز pending است. migration پیشین دارای تغییرات destructive و داده‌برچسب‌دار است و نباید بدون بازبینی/backup روی داده موجود اعمال شود. تأیید migration و عدم وجود Secret tracked نیازمند بررسی/تصمیم جداست؛ Phase 0 هنوز به‌طور کامل بسته نیست.
+**وضعیت اجرا (2026-11-07):** build و typecheck موفق؛ lint ناموفق به‌علت نبود فایل `@typescript-eslint/eslint-plugin/dist/index.js` در نصب محلی. `prisma validate` موفق، اما `prisma migrate status` گزارش داد migration `20261104220451_add_auth_otp_sessions` هنوز pending است. migration قبلی (76 KB) دارای تغییرات destructive است و نباید بدون بازبینی/backup روی داده موجود اعمال شود. هیچ `.env` واقعی tracked نیست؛ فایل‌های نمونه شامل مقدار placeholder و credential توسعه محلی‌اند. به‌علت migration pending و lint repair، Phase 0 **Partial / blocked برای بسته‌شدن** است.
 
 ### Phase 1 — Authentication & Session Foundation
 
@@ -78,16 +78,19 @@ Pezeshki یک سامانه نوبت‌دهی پزشکی با سه سطح اصل�
 - [x] Logout و revoke کردن Session.
 - [x] تکمیل OTP Login.
 - [ ] تکمیل Password Reset و Phone Verification.
-- [x] تست‌های خودکار جریان‌های موجود و تست‌های منفی پایه.
+- [x] تست‌های خودکار جریان‌های موجود و تست‌های منفی پایه (4 files / 19 tests passed).
 - [ ] Rate limiting سطح HTTP و کنترل سوءاستفاده (OTP دارای cooldown و سقف روزانه است).
-- [x] بازبینی اولیه CORS و Cookie policy؛ CSRF باید پیش از اتکا به Cookie در کلاینت نهایی بازبینی شود.
+- [x] تنظیم CORS بر اساس allowlist و بررسی Cookieهای HttpOnly/SameSite/Secure.
 - [x] تست هم‌زمانی Refresh و OTP replay؛ race در ایجاد challenge متزامن و unique conflict mapping همچنان نیازمند تکمیل است.
+- [ ] بازبینی/پیاده‌سازی CSRF protection برای refresh با Cookie پیش از production و نهایی شدن معماری client.
 
 **معیار تکمیل:**
 - مسیرهای موفق و ناموفق با تست خودکار پوشش داده شوند.
 - Tokenهای منقضی، مصرف‌شده و لغوشده پذیرفته نشوند.
 - رفتار هم‌زمانی Refresh و OTP بررسی شود.
 - هیچ Secret یا کد OTP در Logهای Production نباشد.
+
+**وضعیت Phase 1:** **Partial / در حال تکمیل**. مسیرهای فعلی ثبت‌نام/ورود و session پاس هستند، اما Password Reset، Phone Verification، HTTP rate limit، CSRF production review و بعضی race/unique-constraintها باز هستند؛ Phase 1 را هنوز نمی‌توان کامل اعلام کرد.
 
 ### Phase 2 — Authorization & User Management
 

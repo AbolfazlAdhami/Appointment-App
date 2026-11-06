@@ -25,9 +25,10 @@ npm install
 ```bash
 cp .env.example .env
 cp apps/api/.env.example apps/api/.env
+cp apps/api/.env.example apps/api/.env.test
 ```
 
-برای تست‌ها، API انتظار دارد `apps/api/.env.test` به دیتابیس مجزای `pezeshki_test` اشاره کند. فایل‌های Environment واقعی ignore می‌شوند؛ هیچ Secret را Commit نکنید. برای تولید Secretهای محلی از `openssl rand -hex 32` استفاده کنید.
+برای تست‌ها، مقدار `DATABASE_URL` در `apps/api/.env.test` را به دیتابیس مجزای `pezeshki_test` تغییر دهید. Configuration تست عمداً اجرای تست‌ها را روی هر نام دیتابیس دیگر رد می‌کند. فایل‌های Environment واقعی ignore می‌شوند؛ هیچ Secret را Commit نکنید. برای تولید Secretهای محلی از `openssl rand -hex 32` استفاده کنید.
 
 برای API حداقل موارد زیر را بررسی کنید:
 - اتصال PostgreSQL.
@@ -88,4 +89,4 @@ npm run db:validate
 - Prisma Client: پس از تغییر schema، Client را طبق نسخه Prisma پروژه Generate کنید.
 - Migration: `migrate status` را بررسی و SQL جدید را قبل از اعمال بازبینی کنید.
 - API Port: مقدار Environment و لاگ Startup را بررسی کنید.
-- SMS: در Development از Mock Provider استفاده کنید و کد تست را فقط در ترمینال محلی ببینید.
+- SMS: Mock Provider پیام را ارسال یا OTP را Log نمی‌کند. برای تست ارسال، provider تستی Vitest به‌صورت داخلی کد را ضبط می‌کند.

@@ -2,7 +2,7 @@
 
 **Project:** Pezeshki — Doctor Appointment Platform  
 **Module:** API Authentication  
-**Status:** Core authentication flow implemented; additional security hardening pending.
+**Status:** Core registration, password login, OTP login and sessions implemented; Password Reset, Phone Verification and production security hardening remain incomplete. Reviewed 2026-11-07.
 
 ---
 
@@ -158,6 +158,7 @@ Base URL:
 | POST | `/otp/request` | Request an OTP |
 | POST | `/register` | Register a patient |
 | POST | `/login` | Login using email and password |
+| POST | `/login/otp` | Login using phone OTP |
 | POST | `/refresh` | Rotate refresh token |
 | POST | `/logout` | Revoke current session |
 | GET | `/me` | Get authenticated user |
@@ -445,4 +446,4 @@ Before production deployment:
 ---
 
 **Document status:** Initial authentication documentation.  
-**Last updated:** 2026-11-05.
+**Last updated:** 2026-11-07.
