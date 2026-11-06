@@ -11,7 +11,14 @@
     "dev": "npm run dev --workspaces --if-present",
     "build:types": "npm run build --workspace=@appointment/types",
     "build": "npm run build:types && npm run build --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run build:types && npm run typecheck --workspaces --if-present",
+    "db:validate": "npm run db:validate --workspace=@appointment/api",
+    "db:migrate:status": "npm run db:migrate:status --workspace=@appointment/api",
+    "db:migrate:dev": "npm run db:migrate:dev --workspace=@appointment/api",
+    "db:backup": "npm run db:backup --workspace=@appointment/api",
+    "db:restore": "npm run db:restore --workspace=@appointment/api"
   },
   "repository": {
     "type": "git",

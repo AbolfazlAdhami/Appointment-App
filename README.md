@@ -1,16 +1,24 @@
-# Pezeshki Documentation
+# Pezeshki
 
-مستندات فنی پروژه Pezeshki — سامانه نوبت‌دهی پزشک و بیمار
+سامانه نوبت‌دهی پزشک و بیمار. مستندات فنی در [`docs/README.md`](docs/README.md) قرار دارد.
 
 > وضعیت این مستندات: نسخه اولیه قابل بازبینی  
 > اصل مهم: وضعیت هر قابلیت باید با کد و migrationهای واقعی تطبیق داده شود. وجود یک سند به معنی پیاده‌سازی یا تأیید عملیاتی آن قابلیت نیست.
 
-## شروع سریع
+## شروع سریع توسعه
 
-1. [نقشه راه](roadmap.md) را برای ترتیب توسعه بخوانید.
-2. [نمای معماری](architecture/overview.md) را برای شناخت اجزای سیستم بخوانید.
-3. برای راه‌اندازی محیط توسعه از [راهنمای توسعه](development/setup.md) استفاده کنید.
-4. برای API احراز هویت به [مستندات Auth](api/auth.md) و برای جزئیات طراحی آن به [معماری Authentication](architecture/authentication.md) مراجعه کنید.
+```bash
+npm install
+cp .env.example .env
+cp apps/api/.env.example apps/api/.env
+docker compose up -d postgres
+npm run build
+npm test
+```
+
+سپس متغیرهای `DATABASE_URL`, `JWT_SECRET`, `OTP_SECRET` را در `apps/api/.env` تنظیم و از [راهنمای کامل توسعه](docs/development/setup.md) برای migration و اجرای API استفاده کنید. پیش از اعمال migration روی دیتابیس دارای داده، SQL را بازبینی و backup تهیه کنید.
+
+برای نقشه راه، معماری و مستندات API به [`docs/README.md`](docs/README.md) مراجعه کنید.
 
 ## فهرست مستندات
 

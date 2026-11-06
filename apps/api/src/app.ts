@@ -1,13 +1,14 @@
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
+import { env } from "./config/env";
 import authRoutes from "./routes/auth.routes";
 
 const app = express();
 
 app.use(
   cors({
-    origin: ["http://localhost:3001", "http://localhost:3000"],
+    origin: env.corsOrigins,
     credentials: true,
   }),
 );

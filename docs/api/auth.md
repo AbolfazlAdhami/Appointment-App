@@ -10,6 +10,7 @@
 | POST | `/otp/request` | Public | درخواست OTP |
 | POST | `/register` | Public | ثبت‌نام Patient با OTP |
 | POST | `/login` | Public | ورود با Email/Password |
+| POST | `/login/otp` | Public | ورود با تلفن و OTP مصرف‌شونده |
 | POST | `/refresh` | Refresh Cookie | تمدید و Rotation |
 | POST | `/logout` | Access JWT | لغو Session فعلی |
 | GET | `/me` | Access JWT | اطلاعات کاربر فعلی |
@@ -27,7 +28,7 @@
 
 مقادیر فعلی قابل استفاده در این مسیر طبق schema درخواست: `SIGNUP` و `LOGIN`.
 
-پاسخ دقیق باید با Controller بررسی شود. در Development، Mock Provider کد را در ترمینال API چاپ می‌کند؛ این رفتار برای Production مجاز نیست.
+Mock Provider پیام را ارسال نمی‌کند و متن OTP را Log نمی‌کند؛ برای تست از SMS provider ساختگی داخل تست استفاده می‌شود.
 
 ## 3. Register
 
@@ -80,6 +81,10 @@ Refresh Token باید از طریق `Set-Cookie` ارسال شود، نه در 
 برای ایمیل ناشناخته و رمز اشتباه، پاسخ عمومی یکسان استفاده شود تا امکان تشخیص وجود حساب کاهش یابد. رفتار حساب غیرفعال باید مطابق سیاست امنیتی محصول بازبینی شود؛ در حال حاضر پاسخ اختصاصی `User account is inactive` گزارش شده است.
 
 ## 5. Refresh
+
+`POST /api/auth/login/otp` بدنه `{ "phone": "+989121234567", "code": "123456" }` می‌پذیرد. OTP باید برای purpose برابر `LOGIN` صادر شده باشد. پاسخ موفق مانند ورود با رمز عبور شامل `user` و `accessToken` است و Refresh Cookie تنظیم می‌شود. OTP نامعتبر، منقضی یا مصرف‌شده رد می‌شود.
+
+## 6. Refresh
 
 `POST /api/auth/refresh`
 

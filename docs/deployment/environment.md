@@ -9,7 +9,7 @@
 
 ## 2. Configuration Categories
 
-نام دقیق کلیدها باید با Environment schema برنامه تطبیق داده شود.
+API متغیرها را از `apps/api/.env` می‌خواند (برای تست `apps/api/.env.test`). نام‌های مورد استفاده:
 
 | Category | Examples |
 |---|---|
@@ -19,6 +19,8 @@
 | OTP | OTP HMAC secret, expiry, limits |
 | SMS | provider selection, API key, sender number |
 | Web security | CORS origins, cookie settings |
+
+کلیدهای مشخص شامل `DATABASE_URL`, `JWT_SECRET`, `OTP_SECRET`, `ACCESS_TOKEN_EXPIRES_IN`, `REFRESH_TOKEN_TTL_SECONDS`, `OTP_EXPIRES_IN_SECONDS`, `OTP_MAX_ATTEMPTS`, `OTP_RESEND_COOLDOWN_SECONDS`, `OTP_DAILY_LIMIT`, `SMS_PROVIDER`, `LIMOSMS_API_KEY`, `LIMOSMS_SENDER_NUMBER` و `CORS_ORIGINS` هستند.
 
 ## 3. Validation
 

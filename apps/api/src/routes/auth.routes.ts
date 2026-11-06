@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import { login, logout, me, register, refresh, requestOtp } from "../controllers/auth.controller";
+import { login, loginOtp, logout, me, register, refresh, requestOtp } from "../controllers/auth.controller";
 
 import { authenticate } from "../middlewares/auth.middleware";
 
@@ -10,6 +10,7 @@ router.post("/otp/request", requestOtp);
 router.post("/register", register);
 
 router.post("/login", login);
+router.post("/login/otp", loginOtp);
 router.post("/refresh", refresh);
 
 router.post("/logout", authenticate, logout);

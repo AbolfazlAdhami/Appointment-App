@@ -29,6 +29,10 @@ function readPositiveInteger(value: string | undefined, fallback: number, name: 
 
 const nodeEnv = process.env.NODE_ENV ?? "development";
 const port = readPort(process.env.PORT, 4000);
+const corsOrigins = (process.env.CORS_ORIGINS ?? "http://localhost:3001,http://localhost:3000")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 const databaseUrl = process.env.DATABASE_URL;
 const jwtSecret = process.env.JWT_SECRET;
@@ -54,6 +58,10 @@ if (nodeEnv === "production") {
   if (!process.env.OTP_SECRET || otpSecret.length < 32) {
     throw new Error("OTP_SECRET must contain at least 32 characters in production");
   }
+
+  if (jwtSecret === "replace-with-a-secure-random-secret" || otpSecret === "replace-with-at-least-32-characters-random-secret") {
+    throw new Error("Production authentication secrets must not use example values");
+  }
 }
 
 const smsProvider = process.env.SMS_PROVIDER ?? "mock";
@@ -74,6 +82,7 @@ export const env = {
   isProduction: nodeEnv === "production",
 
   port,
+  corsOrigins,
   databaseUrl,
 
   jwtSecret,

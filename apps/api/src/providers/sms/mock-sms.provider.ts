@@ -2,10 +2,9 @@ import type { SmsProvider, SmsSendInput, SmsSendResult } from "./sms.provider";
 
 export class MockSmsProvider implements SmsProvider {
   async send(input: SmsSendInput): Promise<SmsSendResult> {
-    console.info("[MockSmsProvider] SMS generated", {
-      to: input.to,
-      message: input.message,
-    });
+    if (!input.to || !input.message) {
+      throw new Error("Mock SMS requires a destination and message");
+    }
 
     return {
       messageIds: [],

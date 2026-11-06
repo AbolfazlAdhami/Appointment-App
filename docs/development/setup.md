@@ -20,7 +20,14 @@ npm install
 
 ## 3. Environment
 
-فایل Environment محلی را مطابق نمونه‌ای که تیم نگهداری می‌کند بسازید. هیچ مقدار Secret را در Git قرار ندهید.
+از ریشه پروژه، فایل متغیرهای محلی را بسازید:
+
+```bash
+cp .env.example .env
+cp apps/api/.env.example apps/api/.env
+```
+
+برای تست‌ها، API انتظار دارد `apps/api/.env.test` به دیتابیس مجزای `pezeshki_test` اشاره کند. فایل‌های Environment واقعی ignore می‌شوند؛ هیچ Secret را Commit نکنید. برای تولید Secretهای محلی از `openssl rand -hex 32` استفاده کنید.
 
 برای API حداقل موارد زیر را بررسی کنید:
 - اتصال PostgreSQL.
@@ -33,19 +40,26 @@ npm install
 
 ## 4. Database
 
-اگر از Docker Compose استفاده می‌کنید، دستورهای واقعی را از فایل Compose پروژه بردارید.
+از ریشه پروژه PostgreSQL محلی را بالا بیاورید:
+
+```bash
+docker compose up -d postgres
+```
 
 پس از آماده شدن PostgreSQL، از مسیر API:
 
 ```bash
-cd apps/api
-npx prisma validate
-npx prisma migrate status
+npm run db:validate
+npm run db:migrate:status
 ```
 
-برای اعمال migrationهای موجود در محیط توسعه، ابتدا SQL و وضعیت دیتابیس را بررسی کنید و سپس از دستور migration متناسب با workflow پروژه استفاده کنید.
+پس از بازبینی SQL و اطمینان از اتصال به دیتابیس توسعه، برای ساخت/اعمال migration اجرا کنید:
 
-از `prisma migrate reset` روی دیتابیسی که داده لازم دارد استفاده نکنید.
+```bash
+npm run db:migrate:dev --workspace=@appointment/api
+```
+
+**مهم:** migrationهای فعلی شامل تغییرات schema بزرگ و دست‌ریزی احتمالی هستند. پیش از اعمال روی دیتابیس دارای داده، backup بگیرید و SQL را کامل بازبینی کنید. از `prisma migrate reset` روی دیتابیسی که داده لازم دارد استفاده نکنید.
 
 ## 5. Run API
 
@@ -57,13 +71,16 @@ npm run dev --workspace=@appointment/api
 
 اگر نام workspace یا script تغییر کرده است، `apps/api/package.json` مرجع نهایی است.
 
-## 6. Build
+## 6. Quality checks
 
 ```bash
 npm run build
+npm test
+npm run lint
+npm run db:validate
 ```
 
-این دستور باید با scriptهای workspace ریشه هماهنگ باشد. در صورت تفاوت، scriptهای packageها را جداگانه اجرا کنید.
+برای backup/restore محلی از `npm run db:backup` و `npm run db:restore -- <file.dump>` استفاده کنید. Restore تعاملی است و نام دیتابیس مقصد را برای تأیید می‌خواهد. این دستورات به `pg_dump` و `pg_restore` نیاز دارند.
 
 ## 7. Troubleshooting
 

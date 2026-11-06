@@ -2,8 +2,8 @@ import bcrypt from "bcrypt";
 import { Role, OtpPurpose } from "../generated/prisma/client";
 
 import { prisma } from "../libs/prisma";
-import { verifyAndConsumePhoneOtpWithTransaction } from "./otp.service";
 import { createSessionWithTransaction } from "./session.service";
+import { verifyAndConsumePhoneOtpWithTransaction } from "./otp.service";
 
 export type AuthErrorCode = "INVALID_INPUT" | "DUPLICATE_USER" | "INVALID_OTP" | "INVALID_CREDENTIALS";
 
@@ -206,5 +206,49 @@ export async function loginUser(input: LoginInput): Promise<AuthResponse> {
     accessToken: session.accessToken,
     refreshToken: session.refreshToken,
     refreshTokenExpiresAt: session.refreshTokenExpiresAt,
+  };
+}
+
+export async function loginWithPhoneOtp(input: { phone: string; code: string }): Promise<AuthResponse> {
+  const phone = input.phone.replace(/[\s()-]/g, "");
+
+  if (!/^\+?\d{8,15}$/.test(phone) || !/^\d{6}$/.test(input.code)) {
+    throw new AuthServiceError("INVALID_INPUT", "Invalid phone number or verification code");
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    const verification = await verifyAndConsumePhoneOtpWithTransaction(tx, {
+      phone,
+      code: input.code,
+      purpose: OtpPurpose.LOGIN,
+    });
+
+    if (!verification.success || !verification.data.userId) {
+      return { success: false as const };
+    }
+
+    const user = await tx.user.findUnique({
+      where: { id: verification.data.userId },
+      select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true, isActive: true },
+    });
+
+    if (!user || !user.isActive || user.phone !== phone) {
+      return { success: false as const };
+    }
+
+    const session = await createSessionWithTransaction(tx, user.id);
+    await tx.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+    return { success: true as const, user, session };
+  });
+
+  if (!result.success) {
+    throw new AuthServiceError("INVALID_CREDENTIALS", "Invalid phone number or verification code");
+  }
+
+  return {
+    user: toAuthUser(result.user),
+    accessToken: result.session.accessToken,
+    refreshToken: result.session.refreshToken,
+    refreshTokenExpiresAt: result.session.refreshTokenExpiresAt,
   };
 }

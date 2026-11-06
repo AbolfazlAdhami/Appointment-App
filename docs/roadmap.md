@@ -35,8 +35,8 @@ Pezeshki یک سامانه نوبت‌دهی پزشکی با سه سطح اصل�
 | Access JWT و Session middleware | Implemented / دستی تست شده | اعتبارسنجی Session و وضعیت حساب |
 | Refresh rotation | Implemented / دستی تست شده | بررسی رد شدن Token قبلی انجام شده |
 | Logout و لغو Session | Implemented / دستی تست شده | Access و Refresh قبلی پس از لغو رد شده‌اند |
-| OTP Login | Planned | درخواست و تأیید OTP برای ورود کامل شود |
-| تست خودکار Auth | Pending | تست واحد و Integration لازم است |
+| OTP Login | Implemented / automated integration test | OTP مصرف‌شده و کد malformed رد می‌شوند |
+| تست خودکار Auth | Partial / current suite passing | سناریوهای پایه Auth پوشش دارند؛ Password Reset و Phone Verification هنوز ندارند |
 | Authorization | Planned | Role/Permission و مالکیت منابع |
 | Doctor / Appointment | Planned | هنوز در نقشه راه |
 | Frontend workflowها | Planned / در حال توسعه مستقل | نیازمند اتصال به APIهای پایدار |
@@ -48,16 +48,18 @@ Pezeshki یک سامانه نوبت‌دهی پزشکی با سه سطح اصل�
 **هدف:** تثبیت ساختار توسعه، قراردادهای مشترک و محیط محلی.
 
 کارها:
-- [ ] تثبیت npm workspaces و اسکریپت‌های ریشه.
-- [ ] مستندسازی راه‌اندازی پروژه.
-- [ ] تثبیت TypeScript configuration و lint/format.
-- [ ] ثبت قواعد مدیریت Environment و Secretها.
-- [ ] تعریف سیاست migration و backup دیتابیس توسعه.
+- [x] تثبیت npm workspaces و اسکریپت‌های ریشه.
+- [x] مستندسازی راه‌اندازی پروژه.
+- [x] تثبیت TypeScript configuration و lint/typecheck.
+- [x] ثبت قواعد مدیریت Environment و Secretها.
+- [ ] تأیید migrationهای موجود و وضعیت دیتابیس؛ سیاست backup/restore و دستورات مستند شده‌اند.
 
 **معیار تکمیل:**
 - توسعه‌دهنده بتواند پروژه را طبق README راه‌اندازی کند.
 - Build برنامه‌ها از دستورات مستندشده قابل اجرا باشد.
 - هیچ Secret در Git نباشد.
+
+**وضعیت اجرا (2026-11-07):** دستورات build/test/typecheck و migration در workspaceها موجودند؛ راه‌اندازی و backup/restore مستند شده است. `prisma validate` موفق است. lint موجود است اما در این محیط به علت نصب ناقص محلی ESLint dependency اجرا نشد. `prisma migrate status` گزارش داد migration `20261104220451_add_auth_otp_sessions` هنوز pending است. migration پیشین دارای تغییرات destructive و داده‌برچسب‌دار است و نباید بدون بازبینی/backup روی داده موجود اعمال شود. تأیید migration و عدم وجود Secret tracked نیازمند بررسی/تصمیم جداست؛ Phase 0 هنوز به‌طور کامل بسته نیست.
 
 ### Phase 1 — Authentication & Session Foundation
 
@@ -74,12 +76,12 @@ Pezeshki یک سامانه نوبت‌دهی پزشکی با سه سطح اصل�
 - [x] Session validation و account active check.
 - [x] Refresh Token rotation.
 - [x] Logout و revoke کردن Session.
-- [ ] تکمیل OTP Login.
+- [x] تکمیل OTP Login.
 - [ ] تکمیل Password Reset و Phone Verification.
-- [ ] تکمیل تست‌های خودکار و تست‌های منفی.
-- [ ] Rate limiting و کنترل سوءاستفاده.
-- [ ] بازبینی CSRF، CORS و Cookie policy برای معماری نهایی.
-- [ ] بررسی race conditionها و خطاهای unique constraint.
+- [x] تست‌های خودکار جریان‌های موجود و تست‌های منفی پایه.
+- [ ] Rate limiting سطح HTTP و کنترل سوءاستفاده (OTP دارای cooldown و سقف روزانه است).
+- [x] بازبینی اولیه CORS و Cookie policy؛ CSRF باید پیش از اتکا به Cookie در کلاینت نهایی بازبینی شود.
+- [x] تست هم‌زمانی Refresh و OTP replay؛ race در ایجاد challenge متزامن و unique conflict mapping همچنان نیازمند تکمیل است.
 
 **معیار تکمیل:**
 - مسیرهای موفق و ناموفق با تست خودکار پوشش داده شوند.

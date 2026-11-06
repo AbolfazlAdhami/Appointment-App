@@ -9,7 +9,13 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "test": "NODE_ENV=test vitest run",
-    "test:watch": "NODE_ENV=test vitest"
+    "test:watch": "NODE_ENV=test vitest",
+    "typecheck": "tsc --noEmit",
+    "db:validate": "prisma validate",
+    "db:migrate:status": "prisma migrate status",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:backup": "node scripts/database.mjs backup",
+    "db:restore": "node scripts/database.mjs restore"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",

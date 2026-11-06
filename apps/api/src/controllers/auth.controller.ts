@@ -1,10 +1,21 @@
 import type { Request, Response } from "express";
+import { z } from "zod";
 import { revokeSession, refreshSession } from "../services/session.service";
 import type { AuthenticatedRequest } from "../middlewares/auth.middleware";
 import { AuthUserResponseSchema, LogoutResponseSchema } from "../schemas/auth-response.schema";
-import { registerUser, loginUser, AuthServiceError } from "../services/auth.service";
+import { registerUser, loginUser, loginWithPhoneOtp, AuthServiceError } from "../services/auth.service";
 import { requestPhoneOtp } from "../services/otp.service";
 import { RegisterSchema, RequestPhoneOtpSchema } from "../schemas/auth-request.schema";
+
+function setRefreshCookie(res: Response, token: string, expiresAt: Date): void {
+  res.cookie("refreshToken", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/api/auth",
+    maxAge: expiresAt.getTime() - Date.now(),
+  });
+}
 
 export async function register(req: Request, res: Response): Promise<void> {
   try {
@@ -20,13 +31,7 @@ export async function register(req: Request, res: Response): Promise<void> {
 
     const result = await registerUser(validation.data);
 
-    res.cookie("refreshToken", result.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/api/auth",
-      maxAge: result.refreshTokenExpiresAt.getTime() - Date.now(),
-    });
+    setRefreshCookie(res, result.refreshToken, result.refreshTokenExpiresAt);
 
     res.status(201).json({
       user: result.user,
@@ -65,13 +70,7 @@ export async function login(req: Request, res: Response): Promise<void> {
 
     const result = await loginUser({ email, password });
 
-    res.cookie("refreshToken", result.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/api/auth",
-      maxAge: result.refreshTokenExpiresAt.getTime() - Date.now(),
-    });
+    setRefreshCookie(res, result.refreshToken, result.refreshTokenExpiresAt);
 
     res.status(200).json({
       user: result.user,
@@ -81,6 +80,25 @@ export async function login(req: Request, res: Response): Promise<void> {
     res.status(401).json({
       message: error instanceof Error ? error.message : "Login failed",
     });
+  }
+}
+
+export async function loginOtp(req: Request, res: Response): Promise<void> {
+  const validation = z.object({ phone: z.string().trim().min(8).max(20).regex(/^\+?[0-9\s()-]+$/), code: z.string().regex(/^\d{6}$/) }).safeParse(req.body);
+  if (!validation.success) {
+    res.status(400).json({ message: "Invalid OTP login data", errors: validation.error.flatten() });
+    return;
+  }
+  try {
+    const result = await loginWithPhoneOtp(validation.data);
+    setRefreshCookie(res, result.refreshToken, result.refreshTokenExpiresAt);
+    res.status(200).json({ user: result.user, accessToken: result.accessToken });
+  } catch (error) {
+    if (error instanceof AuthServiceError) {
+      res.status(error.code === "INVALID_INPUT" ? 400 : 401).json({ message: error.message });
+      return;
+    }
+    res.status(500).json({ message: "Login failed" });
   }
 }
 
@@ -129,13 +147,7 @@ export async function refresh(req: Request, res: Response): Promise<void> {
   try {
     const result = await refreshSession(refreshToken);
 
-    res.cookie("refreshToken", result.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/api/auth",
-      maxAge: result.refreshTokenExpiresAt.getTime() - Date.now(),
-    });
+    setRefreshCookie(res, result.refreshToken, result.refreshTokenExpiresAt);
 
     res.status(200).json({
       accessToken: result.accessToken,

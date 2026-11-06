@@ -160,6 +160,46 @@ describe("Authentication Integration", () => {
     expect(login.status).toBe(200);
     expect(login.body.accessToken).toBeTruthy();
 
+    // 7.1. OTP login must issue an independent session
+    const otpLoginRequest = await request(app).post("/api/auth/otp/request").send({
+      phone: fixture.phone,
+      purpose: "LOGIN",
+    });
+
+    expect(otpLoginRequest.status).toBe(200);
+    expect(smsMock.code).toMatch(/^\d{6}$/);
+
+    const otpLoginCode = smsMock.code!;
+
+    const otpLogin = await request(app).post("/api/auth/login/otp").send({
+      phone: fixture.phone,
+      code: otpLoginCode,
+    });
+
+    expect(otpLogin.status).toBe(200);
+    expect(otpLogin.body.user.email).toBe(fixture.email);
+    expect(otpLogin.body.accessToken).toBeTruthy();
+    expect(otpLogin.headers["set-cookie"]?.some((cookie: string) => cookie.startsWith("refreshToken=") && cookie.includes("HttpOnly"))).toBe(true);
+
+    const otpLoginMe = await request(app).get("/api/auth/me").set("Authorization", `Bearer ${otpLogin.body.accessToken}`);
+
+    expect(otpLoginMe.status).toBe(200);
+    expect(otpLoginMe.body.user.email).toBe(fixture.email);
+
+    const replayOtpLogin = await request(app).post("/api/auth/login/otp").send({
+      phone: fixture.phone,
+      code: otpLoginCode,
+    });
+
+    expect(replayOtpLogin.status).toBe(401);
+
+    const malformedOtpLogin = await request(app).post("/api/auth/login/otp").send({
+      phone: fixture.phone,
+      code: "12",
+    });
+
+    expect(malformedOtpLogin.status).toBe(400);
+
     const loginCookie = login.headers["set-cookie"]?.find((cookie: string) => cookie.startsWith("refreshToken="));
 
     expect(loginCookie).toBeTruthy();
