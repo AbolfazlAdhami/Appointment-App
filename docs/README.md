@@ -19,6 +19,7 @@
 | `architecture/overview.md` | معماری Monorepo |
 | `architecture/database-design.md` | اصول مدل داده |
 | `architecture/authentication.md` | طراحی Auth و Session |
+| `architecture/authorization-policy.md` | سیاست دسترسی پایه Phase 2 و محدودیت‌های مالکیت |
 | `api/auth.md` | قرارداد Endpointهای Auth |
 | `development/setup.md` | نصب و اجرای محیط توسعه |
 | `development/coding-standards.md` | استانداردهای کدنویسی |

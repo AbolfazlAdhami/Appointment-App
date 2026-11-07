@@ -1,7 +1,9 @@
 import type { NextFunction, Request, Response } from "express";
-import { Role } from "../generated/prisma/client";
+import type { Role } from "../generated/prisma/client";
 import { prisma } from "../libs/prisma";
 import { verifyAccessToken } from "../utils/jwt";
+
+export { authorize } from "./authorization.middleware";
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -13,7 +15,6 @@ export interface AuthenticatedRequest extends Request {
     role: Role;
   };
 }
-
 export async function authenticate(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const authHeader = req.headers.authorization;
@@ -70,22 +71,4 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
   } catch {
     res.status(401).json({ message: "Invalid or expired access token" });
   }
-}
-
-export function authorize(...roles: Role[]) {
-  return (req: Request, res: Response, next: NextFunction): void => {
-    const authenticatedReq = req as AuthenticatedRequest;
-
-    if (!authenticatedReq.user) {
-      res.status(401).json({ message: "Authentication required" });
-      return;
-    }
-
-    if (!roles.includes(authenticatedReq.user.role)) {
-      res.status(403).json({ message: "Access forbidden" });
-      return;
-    }
-
-    next();
-  };
 }

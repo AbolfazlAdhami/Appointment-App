@@ -2,6 +2,7 @@
 import type { Request, Response, NextFunction } from "express";
 import type { Role } from "../generated/prisma/client";
 import type { AuthenticatedRequest } from "./auth.middleware";
+import { rolesForAction, type AuthorizationAction } from "../policies/authorization.policy";
 
 export function authorize(...roles: Role[]) {
   return (
@@ -27,4 +28,8 @@ export function authorize(...roles: Role[]) {
 
     next();
   };
+}
+
+export function authorizeAction(action: AuthorizationAction) {
+  return authorize(...rolesForAction(action));
 }

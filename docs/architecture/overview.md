@@ -55,6 +55,8 @@ Stack شناخته‌شده: Express 5، TypeScript، Prisma 7 و PostgreSQL.
 
 این تقسیم‌بندی دامنه‌ای است؛ لزوماً به معنی وجود همین تعداد پوشه یا ماژول در کد فعلی نیست.
 
+برای سیاست مجوزهای فعلی و مرزبندی role با مالکیت منابع، [Authorization Policy](authorization-policy.md) را ببینید. این سند فقط چند action موجود Auth را پوشش می‌دهد و جایگزین کنترل مالکیت در serviceها نیست.
+
 ## 5. High-level Request Flow
 
 ```mermaid
