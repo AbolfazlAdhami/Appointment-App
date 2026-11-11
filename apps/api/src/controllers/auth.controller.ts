@@ -6,6 +6,8 @@ import { AuthUserResponseSchema, LogoutResponseSchema } from "../schemas/auth-re
 import { registerUser, loginUser, loginWithPhoneOtp, AuthServiceError } from "../services/auth.service";
 import { requestPhoneOtp } from "../services/otp.service";
 import { RegisterSchema, RequestPhoneOtpSchema } from "../schemas/auth-request.schema";
+import { UpdateProfileSchema } from "../schemas/profile.schema";
+import { getUserProfile, updateUserProfile } from "../services/profile.service";
 
 function setRefreshCookie(res: Response, token: string, expiresAt: Date): void {
   res.cookie("refreshToken", token, {
@@ -186,6 +188,48 @@ export async function me(req: AuthenticatedRequest, res: Response): Promise<void
       },
     }),
   );
+}
+
+export async function getProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
+  if (!req.user) {
+    res.status(401).json({ message: "Authentication required" });
+    return;
+  }
+
+  const profile = await getUserProfile(req.user.userId);
+
+  if (!profile) {
+    res.status(404).json({ message: "User profile not found" });
+    return;
+  }
+
+  res.status(200).json({ user: profile });
+}
+
+export async function updateProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
+  if (!req.user) {
+    res.status(401).json({ message: "Authentication required" });
+    return;
+  }
+
+  const validation = UpdateProfileSchema.safeParse(req.body);
+
+  if (!validation.success) {
+    res.status(400).json({
+      message: "Invalid profile update",
+      errors: validation.error.flatten(),
+    });
+    return;
+  }
+
+  const profile = await updateUserProfile(req.user.userId, validation.data);
+
+  if (!profile) {
+    res.status(404).json({ message: "User profile not found" });
+    return;
+  }
+
+  res.status(200).json({ user: profile });
 }
 
 export async function requestOtp(req: Request, res: Response): Promise<void> {

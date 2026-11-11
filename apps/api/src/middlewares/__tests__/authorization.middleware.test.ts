@@ -76,6 +76,8 @@ describe("authorize middleware", () => {
   it("defines explicit access policy for every currently protected auth action", () => {
     expect(rolesForAction("auth.me")).toEqual([Role.PATIENT, Role.DOCTOR, Role.ADMIN]);
     expect(rolesForAction("auth.logout")).toEqual([Role.PATIENT, Role.DOCTOR, Role.ADMIN]);
+    expect(rolesForAction("profile.read.self")).toEqual([Role.PATIENT, Role.DOCTOR, Role.ADMIN]);
+    expect(rolesForAction("profile.update.self")).toEqual([Role.PATIENT, Role.DOCTOR, Role.ADMIN]);
   });
 
   it.each([Role.PATIENT, Role.DOCTOR, Role.ADMIN])("allows role %s for current-user action", (role) => {

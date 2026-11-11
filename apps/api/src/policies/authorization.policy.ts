@@ -8,6 +8,8 @@ import { Role } from "../generated/prisma/client";
 export const authorizationPolicy = {
   "auth.me": [Role.PATIENT, Role.DOCTOR, Role.ADMIN],
   "auth.logout": [Role.PATIENT, Role.DOCTOR, Role.ADMIN],
+  "profile.read.self": [Role.PATIENT, Role.DOCTOR, Role.ADMIN],
+  "profile.update.self": [Role.PATIENT, Role.DOCTOR, Role.ADMIN],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type AuthorizationAction = keyof typeof authorizationPolicy;

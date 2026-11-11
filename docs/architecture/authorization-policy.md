@@ -18,6 +18,8 @@ Missing policy actions must not be treated as public access. Protected routes mu
 |---|---:|---:|---:|---|
 | `auth.me` | Allow | Allow | Allow | Session must be active |
 | `auth.logout` | Allow | Allow | Allow | Revokes only the caller's session |
+| `profile.read.self` | Allow | Allow | Allow | User ID comes only from authenticated session |
+| `profile.update.self` | Allow | Allow | Allow | Only first/last name; no client-selected owner or role change |
 
 Registration, OTP request, login, and refresh remain public/session-bootstrap actions. Their own request validation and OTP/session rules still apply.
 
@@ -32,6 +34,7 @@ Registration, OTP request, login, and refresh remain public/session-bootstrap ac
 
 - This policy covers only the two protected auth actions currently present. It is not yet the Patient/Doctor/Admin business-module permission matrix.
 - No doctor, appointment, medical-record, or user-management route is present in the API at this increment; IDOR protection must be implemented and tested with those resources when added.
+- Self-profile routes currently expose/update only the authenticated user's own basic profile; they do not implement Admin user management or resource ownership rules for domain objects.
 - Admin access boundaries, account suspension/activation workflows, audit events, and role transitions need product/security decisions before implementation.
 - CSRF protections for refresh-cookie requests remain a Phase 1 security-hardening item.
 

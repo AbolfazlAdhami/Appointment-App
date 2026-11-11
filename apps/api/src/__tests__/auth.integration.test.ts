@@ -264,5 +264,40 @@ describe("Authentication Integration", () => {
     const invalidAccessToken = await request(app).get("/api/auth/me").set("Authorization", "Bearer invalid-token");
 
     expect(invalidAccessToken.status).toBe(401);
+
+    const profile = await request(app).get("/api/auth/profile").set("Authorization", `Bearer ${initialAccessToken}`);
+    expect(profile.status).toBe(200);
+    expect(profile.body.user).toMatchObject({
+      id: registration.body.user.id,
+      firstName: fixture.firstName,
+      lastName: fixture.lastName,
+      role: "PATIENT",
+      phone: fixture.phone,
+    });
+    expect(profile.body.user).not.toHaveProperty("nationalId");
+    expect(profile.body.user).not.toHaveProperty("passwordHash");
+
+    const profileUpdate = await request(app)
+      .patch("/api/auth/profile")
+      .set("Authorization", `Bearer ${initialAccessToken}`)
+      .send({ firstName: "Updated" });
+    expect(profileUpdate.status).toBe(200);
+    expect(profileUpdate.body.user.firstName).toBe("Updated");
+    expect(profileUpdate.body.user.role).toBe("PATIENT");
+
+    const forgedRoleUpdate = await request(app)
+      .patch("/api/auth/profile")
+      .set("Authorization", `Bearer ${initialAccessToken}`)
+      .send({ role: "ADMIN", firstName: "Escalated" });
+    expect(forgedRoleUpdate.status).toBe(400);
+
+    const invalidProfileUpdate = await request(app)
+      .patch("/api/auth/profile")
+      .set("Authorization", `Bearer ${initialAccessToken}`)
+      .send({ firstName: "x" });
+    expect(invalidProfileUpdate.status).toBe(400);
+
+    const unauthenticatedProfile = await request(app).get("/api/auth/profile");
+    expect(unauthenticatedProfile.status).toBe(401);
   });
 });

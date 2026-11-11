@@ -14,6 +14,8 @@
 | POST | `/refresh` | Refresh Cookie | تمدید و Rotation |
 | POST | `/logout` | Access JWT | لغو Session فعلی |
 | GET | `/me` | Access JWT | اطلاعات کاربر فعلی |
+| GET | `/profile` | Access JWT | دریافت پروفایل کامل کاربر فعلی |
+| PATCH | `/profile` | Access JWT | ویرایش نام کوچک و نام خانوادگی کاربر فعلی |
 
 ## 2. Request OTP
 
@@ -144,6 +146,12 @@ Authorization: Bearer <access-token>
   }
 }
 ```
+
+## 7.1. Own Profile
+
+`GET /api/auth/profile` فقط پروفایل متعلق به هویت session احرازشده را برمی‌گرداند؛ شناسه کاربر از URL یا request body گرفته نمی‌شود. پاسخ شامل `id`, `firstName`, `lastName`, `email`, `phone`, `role`, `isActive` و `createdAt` است؛ اطلاعاتی مانند national ID، تاریخ تولد و password hash ارائه نمی‌شوند.
+
+`PATCH /api/auth/profile` فقط فیلدهای `firstName` و `lastName` را می‌پذیرد. حداقل یکی باید ارسال شود؛ هر فیلد ارسالی باید ۲ تا ۱۰۰ نویسه باشد. فیلد اضافی، از جمله `role`, `isActive`, `email`, `phone` و شناسه، با پاسخ `400` رد می‌شود. ویرایش Email/Phone نیازمند جریان مستقل تأیید مالکیت است و در این endpoint پشتیبانی نمی‌شود.
 
 ## 8. Error Handling
 
