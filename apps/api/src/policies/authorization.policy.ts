@@ -10,6 +10,8 @@ export const authorizationPolicy = {
   "auth.logout": [Role.PATIENT, Role.DOCTOR, Role.ADMIN],
   "profile.read.self": [Role.PATIENT, Role.DOCTOR, Role.ADMIN],
   "profile.update.self": [Role.PATIENT, Role.DOCTOR, Role.ADMIN],
+  "file.upload.self": [Role.PATIENT, Role.DOCTOR, Role.ADMIN],
+  "file.read.self": [Role.PATIENT, Role.DOCTOR, Role.ADMIN],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type AuthorizationAction = keyof typeof authorizationPolicy;

@@ -77,6 +77,31 @@ if (smsProvider === "limo" && (!limoSmsApiKey || !limoSmsSenderNumber)) {
   throw new Error("LIMOSMS_API_KEY and LIMOSMS_SENDER_NUMBER are required");
 }
 
+const objectStorageEndpoint = process.env.OBJECT_STORAGE_ENDPOINT;
+const objectStorageRegion = process.env.OBJECT_STORAGE_REGION ?? "us-east-1";
+const objectStorageBucket = process.env.OBJECT_STORAGE_BUCKET;
+const objectStorageAccessKey = process.env.OBJECT_STORAGE_ACCESS_KEY;
+const objectStorageSecretKey = process.env.OBJECT_STORAGE_SECRET_KEY;
+const objectStorageForcePathStyle = process.env.OBJECT_STORAGE_FORCE_PATH_STYLE !== "false";
+const objectStorageMaxFileSizeBytes = readPositiveInteger(process.env.OBJECT_STORAGE_MAX_FILE_SIZE_BYTES, 25 * 1024 * 1024, "OBJECT_STORAGE_MAX_FILE_SIZE_BYTES");
+
+const storageConfigValues = [objectStorageEndpoint, objectStorageBucket, objectStorageAccessKey, objectStorageSecretKey];
+const objectStorageConfigured = storageConfigValues.every(Boolean);
+
+if (storageConfigValues.some(Boolean) && !objectStorageConfigured) {
+  throw new Error("OBJECT_STORAGE_ENDPOINT, OBJECT_STORAGE_BUCKET, OBJECT_STORAGE_ACCESS_KEY, and OBJECT_STORAGE_SECRET_KEY must be configured together");
+}
+
+if (objectStorageEndpoint) {
+  const endpointUrl = new URL(objectStorageEndpoint);
+  if (!["http:", "https:"].includes(endpointUrl.protocol)) {
+    throw new Error("OBJECT_STORAGE_ENDPOINT must use HTTP or HTTPS");
+  }
+  if (nodeEnv === "production" && endpointUrl.protocol !== "https:") {
+    throw new Error("OBJECT_STORAGE_ENDPOINT must use HTTPS in production");
+  }
+}
+
 export const env = {
   nodeEnv,
   isProduction: nodeEnv === "production",
@@ -107,4 +132,15 @@ export const env = {
   limoSmsApiKey,
 
   limoSmsSenderNumber,
+
+  objectStorage: {
+    configured: objectStorageConfigured,
+    endpoint: objectStorageEndpoint,
+    region: objectStorageRegion,
+    bucket: objectStorageBucket,
+    accessKey: objectStorageAccessKey,
+    secretKey: objectStorageSecretKey,
+    forcePathStyle: objectStorageForcePathStyle,
+    maxFileSizeBytes: objectStorageMaxFileSizeBytes,
+  },
 };

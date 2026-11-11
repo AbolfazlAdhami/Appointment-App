@@ -6,11 +6,33 @@ const smsMock = vi.hoisted(() => ({
   code: null as string | null,
 }));
 
+const objectStorageMock = vi.hoisted(() => ({
+  objects: new Map<string, Buffer>(),
+}));
+
 vi.mock("../providers/sms/sms.factory", () => ({
   createSmsProvider: () => ({
     send: vi.fn(async ({ message }: { message: string }) => {
       smsMock.code = message.match(/\d{6}/)?.[0] ?? null;
       return { messageIds: ["test-message"] };
+    }),
+  }),
+}));
+
+vi.mock("../providers/object-storage/s3-object-storage.provider", () => ({
+  getObjectStorageProvider: () => ({
+    ensureBucket: vi.fn(async () => undefined),
+    putObject: vi.fn(async ({ key, body }: { key: string; body: Buffer }) => {
+      objectStorageMock.objects.set(key, body);
+    }),
+    getObject: vi.fn(async (key: string) => {
+      const body = objectStorageMock.objects.get(key);
+      if (!body) return null;
+      const { Readable } = await import("node:stream");
+      return { body: Readable.from(body), contentLength: body.length, contentType: "image/png" };
+    }),
+    deleteObject: vi.fn(async (key: string) => {
+      objectStorageMock.objects.delete(key);
     }),
   }),
 }));
@@ -299,5 +321,55 @@ describe("Authentication Integration", () => {
 
     const unauthenticatedProfile = await request(app).get("/api/auth/profile");
     expect(unauthenticatedProfile.status).toBe(401);
+
+    const png = Buffer.from("89504e470d0a1a0a00000000", "hex");
+    const fileUpload = await request(app)
+      .post("/api/files")
+      .set("Authorization", `Bearer ${initialAccessToken}`)
+      .set("Content-Type", "image/png")
+      .set("X-File-Name", "scan.png")
+      .send(png);
+    expect(fileUpload.status).toBe(201);
+    expect(fileUpload.body.file.isPrivate).toBe(true);
+    expect(fileUpload.body.file).not.toHaveProperty("storageKey");
+
+    const fileId = fileUpload.body.file.id as string;
+    const fileDownload = await request(app)
+      .get(`/api/files/${fileId}`)
+      .set("Authorization", `Bearer ${initialAccessToken}`);
+    expect(fileDownload.status).toBe(200);
+    expect(fileDownload.headers["cache-control"]).toBe("private, no-store");
+    expect(Buffer.from(fileDownload.body).equals(png)).toBe(true);
+
+    const otherUser = await prisma.user.create({
+      data: {
+        firstName: "Other",
+        lastName: "Patient",
+        nationalId: `O${randomUUID().replace(/-/g, "").slice(0, 10)}`,
+        dateOfBirth: new Date("1990-01-01"),
+        phone: `+4916${randomInt(100000000, 999999999)}`,
+      },
+    });
+    const otherSession = await prisma.authSession.create({
+      data: {
+        userId: otherUser.id,
+        refreshTokenHash: randomUUID().replace(/-/g, "").padEnd(64, "0"),
+        expiresAt: new Date(Date.now() + 60_000),
+      },
+    });
+    const { generateAccessToken } = await import("../utils/jwt");
+    const otherAccessToken = generateAccessToken({ userId: otherUser.id, sessionId: otherSession.id });
+    const forbiddenDownload = await request(app)
+      .get(`/api/files/${fileId}`)
+      .set("Authorization", `Bearer ${otherAccessToken}`);
+    expect(forbiddenDownload.status).toBe(403);
+    await prisma.user.delete({ where: { id: otherUser.id } });
+
+    const spoofedUpload = await request(app)
+      .post("/api/files")
+      .set("Authorization", `Bearer ${initialAccessToken}`)
+      .set("Content-Type", "image/png")
+      .send(Buffer.from("plain text"));
+    expect(spoofedUpload.status).toBe(400);
   });
 });

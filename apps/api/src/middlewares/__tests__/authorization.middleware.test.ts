@@ -78,6 +78,8 @@ describe("authorize middleware", () => {
     expect(rolesForAction("auth.logout")).toEqual([Role.PATIENT, Role.DOCTOR, Role.ADMIN]);
     expect(rolesForAction("profile.read.self")).toEqual([Role.PATIENT, Role.DOCTOR, Role.ADMIN]);
     expect(rolesForAction("profile.update.self")).toEqual([Role.PATIENT, Role.DOCTOR, Role.ADMIN]);
+    expect(rolesForAction("file.upload.self")).toEqual([Role.PATIENT, Role.DOCTOR, Role.ADMIN]);
+    expect(rolesForAction("file.read.self")).toEqual([Role.PATIENT, Role.DOCTOR, Role.ADMIN]);
   });
 
   it.each([Role.PATIENT, Role.DOCTOR, Role.ADMIN])("allows role %s for current-user action", (role) => {

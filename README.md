@@ -15,6 +15,8 @@ npm run build
 npm test
 ```
 
+برای ذخیره‌سازی محلی فایل، سرویس S3-compatible توسعه را نیز با `docker compose up -d object-storage` اجرا کنید؛ تنظیمات API در `apps/api/.env.example` مستند شده است.
+
 سپس متغیرهای `DATABASE_URL`, `JWT_SECRET`, `OTP_SECRET` را در `apps/api/.env` تنظیم و از [راهنمای کامل توسعه](docs/development/setup.md) برای migration و اجرای API استفاده کنید. پیش از اعمال migration روی دیتابیس دارای داده، SQL را بازبینی و backup تهیه کنید.
 
 برای نقشه راه، معماری و مستندات API به [`docs/README.md`](docs/README.md) مراجعه کنید.

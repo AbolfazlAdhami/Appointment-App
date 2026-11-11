@@ -18,5 +18,26 @@ services:
       timeout: 5s
       retries: 10
 
+  object-storage:
+    image: localstack/localstack:4.11.1
+    restart: unless-stopped
+    environment:
+      SERVICES: s3
+      AWS_DEFAULT_REGION: ${OBJECT_STORAGE_REGION:-us-east-1}
+      PERSISTENCE: "1"
+      LS_LOG: warn
+    ports:
+      - "127.0.0.1:4566:4566"
+    volumes:
+      - object_storage_data:/var/lib/localstack
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -fsS http://127.0.0.1:4566/_localstack/health | grep -q s3
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
 volumes:
   postgres_data:
+  object_storage_data:
