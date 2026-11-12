@@ -21,6 +21,19 @@ On a real status transition, the API updates the account and writes an `AuditLog
 
 Responses: `200` with `{ user, changed }`, `400` invalid request, `401` unauthenticated, `403` non-admin, `404` unknown user, `409` protected admin deactivation.
 
+## List users
+
+`GET /api/admin/users`
+
+Only an authenticated `ADMIN` may call this endpoint. Optional query parameters:
+
+- `cursor`: user ID returned as the prior page's `pagination.nextCursor`.
+- `limit`: integer from 1 to 100; defaults to 25.
+- `role`: `PATIENT`, `DOCTOR`, or `ADMIN`.
+- `isActive`: `true` or `false`.
+
+The response contains `users` and `pagination` (`limit`, `nextCursor`, `hasMore`). User rows expose only ID, first/last name, email, role, active state, created time, and last login time. Phone, national ID, password hash, and other sensitive fields are not selected. Unknown query parameters are rejected.
+
 ## Scope limitations
 
-This endpoint does not provide user listing/search, role changes, account deletion, appeal flow, or admin MFA. Those need separate product/security decisions and audited workflows.
+This endpoint does not provide free-text search, role changes, account deletion, appeal flow, or admin MFA. Those need separate product/security decisions and audited workflows.

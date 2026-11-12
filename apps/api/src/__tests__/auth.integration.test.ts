@@ -379,6 +379,11 @@ describe("Authentication Integration", () => {
       .send({ isActive: false, reason: "Test authorization" });
     expect(forbiddenAdminAction.status).toBe(403);
 
+    const forbiddenAdminList = await request(app)
+      .get("/api/admin/users")
+      .set("Authorization", `Bearer ${initialAccessToken}`);
+    expect(forbiddenAdminList.status).toBe(403);
+
     const adminSuffix = randomUUID().replace(/-/g, "").slice(0, 10);
     const admin = await prisma.user.create({
       data: {
@@ -398,6 +403,13 @@ describe("Authentication Integration", () => {
       },
     });
     const adminToken = generateAccessToken({ userId: admin.id, sessionId: adminSession.id });
+    const adminList = await request(app)
+      .get("/api/admin/users?role=PATIENT&isActive=true&limit=10")
+      .set("Authorization", `Bearer ${adminToken}`);
+    expect(adminList.status).toBe(200);
+    expect(adminList.body.users.some((user: { id: string }) => user.id === otherUser.id)).toBe(true);
+    expect(adminList.body.users[0]).not.toHaveProperty("nationalId");
+    expect(adminList.body.users[0]).not.toHaveProperty("phone");
     const deactivation = await request(app)
       .patch(`/api/admin/users/${otherUser.id}/status`)
       .set("Authorization", `Bearer ${adminToken}`)

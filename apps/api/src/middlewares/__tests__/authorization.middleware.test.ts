@@ -81,6 +81,7 @@ describe("authorize middleware", () => {
     expect(rolesForAction("file.upload.self")).toEqual([Role.PATIENT, Role.DOCTOR, Role.ADMIN]);
     expect(rolesForAction("file.read.self")).toEqual([Role.PATIENT, Role.DOCTOR, Role.ADMIN]);
     expect(rolesForAction("admin.users.status.update")).toEqual([Role.ADMIN]);
+    expect(rolesForAction("admin.users.list")).toEqual([Role.ADMIN]);
   });
 
   it("allows only administrators to update account status", () => {

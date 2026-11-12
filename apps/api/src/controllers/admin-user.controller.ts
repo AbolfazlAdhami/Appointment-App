@@ -2,6 +2,19 @@ import type { Request, Response } from "express";
 import type { AuthenticatedRequest } from "../middlewares/auth.middleware";
 import { UpdateUserStatusSchema } from "../schemas/admin-user.schema";
 import { updateUserStatus } from "../services/admin-user.service";
+import { AdminUserListQuerySchema } from "../schemas/admin-user-list.schema";
+import { listUsers } from "../services/admin-user-list.service";
+
+export async function getUsers(req: Request, res: Response): Promise<void> {
+  const validation = AdminUserListQuerySchema.safeParse(req.query);
+  if (!validation.success) {
+    res.status(400).json({ message: "Invalid user list query", errors: validation.error.flatten() });
+    return;
+  }
+
+  const result = await listUsers(validation.data);
+  res.status(200).json(result);
+}
 
 export async function setUserStatus(req: Request, res: Response): Promise<void> {
   const actor = (req as AuthenticatedRequest).user;

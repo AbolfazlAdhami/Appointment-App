@@ -13,6 +13,7 @@ export const authorizationPolicy = {
   "file.upload.self": [Role.PATIENT, Role.DOCTOR, Role.ADMIN],
   "file.read.self": [Role.PATIENT, Role.DOCTOR, Role.ADMIN],
   "admin.users.status.update": [Role.ADMIN],
+  "admin.users.list": [Role.ADMIN],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type AuthorizationAction = keyof typeof authorizationPolicy;

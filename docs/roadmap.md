@@ -100,6 +100,7 @@ Pezeshki یک سامانه نوبت‌دهی پزشکی با سه سطح اصل�
 - [x] طراحی پایه Role Guard و Permission policy برای endpointهای فعلی Auth.
 - [x] API پایه پروفایل کاربر فعلی با ownership مبتنی بر session و فیلدهای قابل ویرایش محدود.
 - [x] مدیریت فعال/غیرفعال‌سازی حساب توسط Admin با reason، audit، لغو session و حفاظت آخرین Admin فعال.
+- [x] فهرست کاربران Admin با فیلتر role/status، cursor pagination و فیلدهای حداقلی.
 - [x] API فایل private با کنترل مالکیت برای خود مالک؛ مجوزهای رابطه درمانی هنوز وجود ندارد.
 - [ ] تکمیل ماتریس دسترسی Patient / Doctor / Admin برای ماژول‌های کسب‌وکار.
 - [ ] جلوگیری از دسترسی کاربر به منابع متعلق به دیگران در ماژول‌های Doctor/Appointment/Medical Records.
@@ -113,7 +114,7 @@ Pezeshki یک سامانه نوبت‌دهی پزشکی با سه سطح اصل�
 - تغییر Role فقط از مسیر مجاز مدیریتی انجام شود.
 - تست‌های منفی برای دسترسی غیرمجاز وجود داشته باشد.
 
-**پیشرفت (2026-11-11):** policy پایه و self-profile API پیاده‌سازی و تست شده‌اند؛ profile فقط نام کوچک/نام خانوادگی را می‌پذیرد. Admin می‌تواند حساب هدف را با reason اجباری فعال/غیرفعال کند؛ غیرفعال‌سازی sessionها را لغو می‌کند، AuditLog ثبت می‌شود، self-deactivation و غیرفعال‌سازی آخرین Admin فعال رد می‌شوند. فایل‌های private نیز فعلاً owner-only هستند. Unit، authorization و DB integration testها در snapshot جاری پاس شده‌اند. ماتریس کامل business-domain، IDOR برای منابع درمانی، workflow کامل Admin و role transitionها همچنان باز هستند؛ Phase 2 کامل نیست. Phase 1 همچنان Partial است و این کار آن را کامل محسوب نمی‌کند.
+**پیشرفت (2026-11-11):** policy پایه و self-profile API پیاده‌سازی و تست شده‌اند؛ profile فقط نام کوچک/نام خانوادگی را می‌پذیرد. Admin می‌تواند حساب هدف را با reason اجباری فعال/غیرفعال کند؛ غیرفعال‌سازی sessionها را لغو می‌کند، AuditLog ثبت می‌شود، self-deactivation و غیرفعال‌سازی آخرین Admin فعال رد می‌شوند. فهرست کاربران Admin با فیلترهای محدود، cursor pagination و projection حداقلی اضافه شده است. فایل‌های private نیز فعلاً owner-only هستند. ماتریس کامل business-domain، IDOR برای منابع درمانی، workflow کامل Admin و role transitionها همچنان باز هستند؛ Phase 2 کامل نیست. Phase 1 همچنان Partial است و این کار آن را کامل محسوب نمی‌کند.
 
 ### Phase 3 — Medical Specialties & Doctor Profiles
 
