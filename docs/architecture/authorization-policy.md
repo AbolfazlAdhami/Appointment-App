@@ -20,6 +20,7 @@ Missing policy actions must not be treated as public access. Protected routes mu
 | `auth.logout` | Allow | Allow | Allow | Revokes only the caller's session |
 | `profile.read.self` | Allow | Allow | Allow | User ID comes only from authenticated session |
 | `profile.update.self` | Allow | Allow | Allow | Only first/last name; no client-selected owner or role change |
+| `admin.users.status.update` | Deny | Deny | Allow | Reason required; no self-deactivation or last-active-admin deactivation; audit and session revoke on deactivation |
 
 Registration, OTP request, login, and refresh remain public/session-bootstrap actions. Their own request validation and OTP/session rules still apply.
 
@@ -27,17 +28,17 @@ Registration, OTP request, login, and refresh remain public/session-bootstrap ac
 
 - Role is loaded from the database during authentication; do not accept a role from request input or trust one from an access token.
 - Registration creates a Patient. No public API may assign Doctor or Admin role.
-- Admin role changes require a separately defined, audited administrative workflow; there is no role-management endpoint in this increment.
+- Admin role changes require a separately defined, audited administrative workflow; account status management does not grant role-management capability.
 - Patient/doctor record ownership rules must be specified before their endpoints are implemented. Do not infer ownership from a client-provided profile ID.
 
 ## Current limitations / next decisions
 
-- This policy covers only the two protected auth actions currently present. It is not yet the Patient/Doctor/Admin business-module permission matrix.
-- No doctor, appointment, medical-record, or user-management route is present in the API at this increment; IDOR protection must be implemented and tested with those resources when added.
-- Self-profile routes currently expose/update only the authenticated user's own basic profile; they do not implement Admin user management or resource ownership rules for domain objects.
-- Admin access boundaries, account suspension/activation workflows, audit events, and role transitions need product/security decisions before implementation.
+- This policy is not yet the complete Patient/Doctor/Admin business-module permission matrix.
+- No doctor, appointment, or medical-record routes are present; IDOR protection must be implemented and tested with those resources when added.
+- Self-profile routes expose/update only the authenticated user's own basic profile. Admin account status actions are limited to activate/deactivate and do not allow role changes.
+- Admin identity provisioning, MFA, role transitions, and broader audit retention/access policies need product/security decisions.
 - CSRF protections for refresh-cookie requests remain a Phase 1 security-hardening item.
 
 ## Verification
 
-`apps/api/src/middlewares/__tests__/authorization.middleware.test.ts` checks unauthenticated denial, role denial, allowed roles, action policy entries, and multi-role checks. Route-level tests and ownership/IDOR tests remain required as corresponding routes are introduced.
+`apps/api/src/middlewares/__tests__/authorization.middleware.test.ts` checks unauthenticated denial, role denial, allowed roles, action policy entries, and multi-role checks. `apps/api/src/services/__tests__/admin-user.service.test.ts` checks status transitions, session revocation, audit, self/last-admin protections, and validation. Route-level DB integration covers authorized/unauthorized status updates. Domain ownership/IDOR tests remain required as those routes are introduced.

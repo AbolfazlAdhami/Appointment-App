@@ -4,6 +4,7 @@ import express from "express";
 import { env } from "./config/env";
 import authRoutes from "./routes/auth.routes";
 import fileAssetRoutes from "./routes/file-asset.routes";
+import adminUserRoutes from "./routes/admin-user.routes";
 
 const app = express();
 
@@ -26,5 +27,6 @@ app.get("/api/health", (_req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/files", fileAssetRoutes);
+app.use("/api/admin/users", adminUserRoutes);
 
 export default app;

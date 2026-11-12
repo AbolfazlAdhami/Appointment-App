@@ -39,6 +39,8 @@ vi.mock("../providers/object-storage/s3-object-storage.provider", () => ({
 
 import app from "../app";
 import { prisma } from "../libs/prisma";
+import { Role } from "../generated/prisma/client";
+import { generateAccessToken } from "../utils/jwt";
 
 const databaseName = new URL(process.env.DATABASE_URL!).pathname.slice(1);
 
@@ -363,7 +365,6 @@ describe("Authentication Integration", () => {
       .get(`/api/files/${fileId}`)
       .set("Authorization", `Bearer ${otherAccessToken}`);
     expect(forbiddenDownload.status).toBe(403);
-    await prisma.user.delete({ where: { id: otherUser.id } });
 
     const spoofedUpload = await request(app)
       .post("/api/files")
@@ -371,5 +372,49 @@ describe("Authentication Integration", () => {
       .set("Content-Type", "image/png")
       .send(Buffer.from("plain text"));
     expect(spoofedUpload.status).toBe(400);
+
+    const forbiddenAdminAction = await request(app)
+      .patch(`/api/admin/users/${registration.body.user.id}/status`)
+      .set("Authorization", `Bearer ${initialAccessToken}`)
+      .send({ isActive: false, reason: "Test authorization" });
+    expect(forbiddenAdminAction.status).toBe(403);
+
+    const adminSuffix = randomUUID().replace(/-/g, "").slice(0, 10);
+    const admin = await prisma.user.create({
+      data: {
+        firstName: "Integration",
+        lastName: "Admin",
+        nationalId: `A${adminSuffix}`,
+        dateOfBirth: new Date("1980-01-01"),
+        phone: `+4917${randomInt(100000000, 999999999)}`,
+        role: Role.ADMIN,
+      },
+    });
+    const adminSession = await prisma.authSession.create({
+      data: {
+        userId: admin.id,
+        refreshTokenHash: randomUUID().replace(/-/g, "").padEnd(64, "0"),
+        expiresAt: new Date(Date.now() + 60_000),
+      },
+    });
+    const adminToken = generateAccessToken({ userId: admin.id, sessionId: adminSession.id });
+    const deactivation = await request(app)
+      .patch(`/api/admin/users/${otherUser.id}/status`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ isActive: false, reason: "Integration test deactivation" });
+    expect(deactivation.status).toBe(200);
+    expect(deactivation.body).toMatchObject({ changed: true, user: { id: otherUser.id, isActive: false } });
+    expect(await prisma.authSession.count({ where: { userId: otherUser.id, revokedAt: null } })).toBe(0);
+    expect(await prisma.auditLog.count({ where: { actorUserId: admin.id, entityId: otherUser.id, action: "USER_DEACTIVATED" } })).toBe(1);
+
+    const activation = await request(app)
+      .patch(`/api/admin/users/${otherUser.id}/status`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ isActive: true, reason: "Integration test activation" });
+    expect(activation.status).toBe(200);
+    expect(activation.body).toMatchObject({ changed: true, user: { id: otherUser.id, isActive: true } });
+    await prisma.auditLog.deleteMany({ where: { actorUserId: admin.id, entityId: otherUser.id } });
+    await prisma.user.delete({ where: { id: admin.id } });
+    await prisma.user.delete({ where: { id: otherUser.id } });
   });
 });

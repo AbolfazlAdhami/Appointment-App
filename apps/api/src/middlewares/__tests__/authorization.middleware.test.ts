@@ -80,6 +80,22 @@ describe("authorize middleware", () => {
     expect(rolesForAction("profile.update.self")).toEqual([Role.PATIENT, Role.DOCTOR, Role.ADMIN]);
     expect(rolesForAction("file.upload.self")).toEqual([Role.PATIENT, Role.DOCTOR, Role.ADMIN]);
     expect(rolesForAction("file.read.self")).toEqual([Role.PATIENT, Role.DOCTOR, Role.ADMIN]);
+    expect(rolesForAction("admin.users.status.update")).toEqual([Role.ADMIN]);
+  });
+
+  it("allows only administrators to update account status", () => {
+    const patientReq = createRequest(Role.PATIENT);
+    const patientRes = createResponse();
+    const patientNext = vi.fn() as NextFunction;
+    authorizeAction("admin.users.status.update")(patientReq, patientRes, patientNext);
+    expect(patientRes.status).toHaveBeenCalledWith(403);
+    expect(patientNext).not.toHaveBeenCalled();
+
+    const adminReq = createRequest(Role.ADMIN);
+    const adminRes = createResponse();
+    const adminNext = vi.fn() as NextFunction;
+    authorizeAction("admin.users.status.update")(adminReq, adminRes, adminNext);
+    expect(adminNext).toHaveBeenCalledOnce();
   });
 
   it.each([Role.PATIENT, Role.DOCTOR, Role.ADMIN])("allows role %s for current-user action", (role) => {

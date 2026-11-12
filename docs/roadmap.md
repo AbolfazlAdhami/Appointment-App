@@ -37,7 +37,7 @@ Pezeshki یک سامانه نوبت‌دهی پزشکی با سه سطح اصل�
 | Logout و لغو Session | Implemented / integration-tested | Access و Refresh قبلی پس از لغو رد می‌شوند |
 | OTP Login | Implemented / automated integration test | OTP مصرف‌شده، malformed و استفاده مجدد رد می‌شوند |
 | تست خودکار Auth | Partial / 19 passing | چهار فایل تست پاس؛ Reset/Phone Verification و تست‌های production hardening ندارند |
-| Authorization | Planned | Role/Permission و مالکیت منابع |
+| Authorization & User Management | Partial | policy پایه، self-profile، فایل owner-only و admin account status؛ ماتریس کامل و دامنه‌های باقی‌مانده باز هستند |
 | Doctor / Appointment | Planned | هنوز در نقشه راه |
 | Frontend workflowها | Planned / در حال توسعه مستقل | نیازمند اتصال به APIهای پایدار |
 
@@ -99,11 +99,13 @@ Pezeshki یک سامانه نوبت‌دهی پزشکی با سه سطح اصل�
 کارها:
 - [x] طراحی پایه Role Guard و Permission policy برای endpointهای فعلی Auth.
 - [x] API پایه پروفایل کاربر فعلی با ownership مبتنی بر session و فیلدهای قابل ویرایش محدود.
+- [x] مدیریت فعال/غیرفعال‌سازی حساب توسط Admin با reason، audit، لغو session و حفاظت آخرین Admin فعال.
+- [x] API فایل private با کنترل مالکیت برای خود مالک؛ مجوزهای رابطه درمانی هنوز وجود ندارد.
 - [ ] تکمیل ماتریس دسترسی Patient / Doctor / Admin برای ماژول‌های کسب‌وکار.
-- [ ] جلوگیری از دسترسی کاربر به منابع متعلق به دیگران.
-- [ ] تکمیل User Profile API.
-- [ ] تعریف وضعیت حساب و فرآیند فعال‌سازی/غیرفعال‌سازی.
-- [ ] ثبت رویدادهای حساس مدیریتی.
+- [ ] جلوگیری از دسترسی کاربر به منابع متعلق به دیگران در ماژول‌های Doctor/Appointment/Medical Records.
+- [ ] تکمیل User Profile API، از جمله سیاست‌های verification برای اطلاعات تماس و lifecycle داده.
+- [ ] تکمیل workflow عملیاتی lifecycle حساب (لیست/جستجوی Admin، احراز هویت قوی Admin، فرآیند appeal/lockout).
+- [x] ثبت AuditLog برای تغییر وضعیت حساب توسط Admin.
 - [ ] تست دسترسی افقی و عمودی (IDOR / privilege escalation).
 
 **معیار تکمیل:**
@@ -111,7 +113,7 @@ Pezeshki یک سامانه نوبت‌دهی پزشکی با سه سطح اصل�
 - تغییر Role فقط از مسیر مجاز مدیریتی انجام شود.
 - تست‌های منفی برای دسترسی غیرمجاز وجود داشته باشد.
 
-**پیشرفت:** پایه policy برای Auth و self-profile API با شناسه برگرفته از session اضافه شده است. گام پروفایل فقط نام کوچک/نام خانوادگی را می‌پذیرد و تغییر role/شناسه/اطلاعات تماس را رد می‌کند. این قابلیت پس از اعتبارسنجی و commit قابل علامت‌گذاری است؛ مدیریت کاربران توسط Admin، lifecycle حساب، ماتریس کامل دامنه‌ای و تست ownership منابع دامنه‌ای همچنان باز هستند. این به معنی تکمیل Phase 2 نیست.
+**پیشرفت (2026-11-11):** policy پایه و self-profile API پیاده‌سازی و تست شده‌اند؛ profile فقط نام کوچک/نام خانوادگی را می‌پذیرد. Admin می‌تواند حساب هدف را با reason اجباری فعال/غیرفعال کند؛ غیرفعال‌سازی sessionها را لغو می‌کند، AuditLog ثبت می‌شود، self-deactivation و غیرفعال‌سازی آخرین Admin فعال رد می‌شوند. فایل‌های private نیز فعلاً owner-only هستند. Unit، authorization و DB integration testها در snapshot جاری پاس شده‌اند. ماتریس کامل business-domain، IDOR برای منابع درمانی، workflow کامل Admin و role transitionها همچنان باز هستند؛ Phase 2 کامل نیست. Phase 1 همچنان Partial است و این کار آن را کامل محسوب نمی‌کند.
 
 ### Phase 3 — Medical Specialties & Doctor Profiles
 

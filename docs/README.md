@@ -9,7 +9,7 @@
 1. [نقشه راه](roadmap.md)
 2. [نمای معماری](architecture/overview.md)
 3. [راه‌اندازی توسعه](development/setup.md)
-4. [قرارداد API احراز هویت](api/auth.md)، [قرارداد API فایل](api/files.md) و [معماری Authentication](architecture/authentication.md)
+4. [قرارداد API احراز هویت](api/auth.md)، [API فایل](api/files.md)، [API مدیریت وضعیت حساب توسط Admin](api/admin-users.md) و [معماری Authentication](architecture/authentication.md)
 
 ## فهرست
 
@@ -22,6 +22,7 @@
 | `architecture/authorization-policy.md` | سیاست دسترسی پایه Phase 2 و محدودیت‌های مالکیت |
 | `api/auth.md` | قرارداد Endpointهای Auth |
 | `api/files.md` | قرارداد آپلود/دانلود فایل خصوصی |
+| `api/admin-users.md` | قرارداد مدیریت فعال/غیرفعال‌سازی حساب توسط Admin |
 | `development/setup.md` | نصب و اجرای محیط توسعه |
 | `development/coding-standards.md` | استانداردهای کدنویسی |
 | `development/testing.md` | راهبرد تست |
