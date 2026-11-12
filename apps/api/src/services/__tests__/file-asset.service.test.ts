@@ -94,7 +94,7 @@ describe("Private file asset service", () => {
       isPrivate: true,
     });
 
-    await expect(getPrivateFile({ assetId: "asset-1", requesterUserId: "attacker" })).rejects.toBeInstanceOf(FileAssetError);
+    await expect(getPrivateFile({ assetId: "asset-1", requesterUserId: "attacker" })).rejects.toMatchObject({ code: "FORBIDDEN" });
     expect(storageMock.getObject).not.toHaveBeenCalled();
   });
 

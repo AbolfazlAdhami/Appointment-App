@@ -62,6 +62,22 @@ describe("Self profile service", () => {
     expect(prismaMock.user.findUnique).toHaveBeenCalledTimes(1);
   });
 
+  it("never applies a client-selected profile identifier", async () => {
+    prismaMock.user.updateMany.mockResolvedValue({ count: 1 });
+    prismaMock.user.findUnique.mockResolvedValue({ ...profile, firstName: "OwnName" });
+
+    await updateUserProfile("authenticated-user", { firstName: "OwnName" });
+
+    expect(prismaMock.user.updateMany).toHaveBeenCalledWith({
+      where: { id: "authenticated-user" },
+      data: { firstName: "OwnName" },
+    });
+    expect(prismaMock.user.updateMany.mock.calls[0]?.[0]).toEqual({
+      where: { id: "authenticated-user" },
+      data: { firstName: "OwnName" },
+    });
+  });
+
   it("returns null when the authenticated user no longer exists", async () => {
     prismaMock.user.updateMany.mockResolvedValue({ count: 0 });
 

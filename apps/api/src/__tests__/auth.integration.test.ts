@@ -289,6 +289,24 @@ describe("Authentication Integration", () => {
 
     expect(invalidAccessToken.status).toBe(401);
 
+    const otherUser = await prisma.user.create({
+      data: {
+        firstName: "Other",
+        lastName: "Patient",
+        nationalId: `O${randomUUID().replace(/-/g, "").slice(0, 10)}`,
+        dateOfBirth: new Date("1990-01-01"),
+        phone: `+4916${randomInt(100000000, 999999999)}`,
+      },
+    });
+    const otherSession = await prisma.authSession.create({
+      data: {
+        userId: otherUser.id,
+        refreshTokenHash: randomUUID().replace(/-/g, "").padEnd(64, "0"),
+        expiresAt: new Date(Date.now() + 60_000),
+      },
+    });
+    const otherAccessToken = generateAccessToken({ userId: otherUser.id, sessionId: otherSession.id });
+
     const profile = await request(app).get("/api/auth/profile").set("Authorization", `Bearer ${initialAccessToken}`);
     expect(profile.status).toBe(200);
     expect(profile.body.user).toMatchObject({
@@ -300,6 +318,13 @@ describe("Authentication Integration", () => {
     });
     expect(profile.body.user).not.toHaveProperty("nationalId");
     expect(profile.body.user).not.toHaveProperty("passwordHash");
+
+    const crossUserProfile = await request(app)
+      .get("/api/auth/profile")
+      .set("Authorization", `Bearer ${otherAccessToken}`);
+    expect(crossUserProfile.status).toBe(200);
+    expect(crossUserProfile.body.user.id).toBe(otherUser.id);
+    expect(crossUserProfile.body.user.id).not.toBe(registration.body.user.id);
 
     const profileUpdate = await request(app)
       .patch("/api/auth/profile")
@@ -320,6 +345,17 @@ describe("Authentication Integration", () => {
       .set("Authorization", `Bearer ${initialAccessToken}`)
       .send({ firstName: "x" });
     expect(invalidProfileUpdate.status).toBe(400);
+
+    const crossUserProfileUpdate = await request(app)
+      .patch("/api/auth/profile")
+      .set("Authorization", `Bearer ${otherAccessToken}`)
+      .send({ firstName: "NotYourAccount" });
+    expect(crossUserProfileUpdate.status).toBe(200);
+    expect(crossUserProfileUpdate.body.user.id).toBe(otherUser.id);
+    const unchangedOwnerProfile = await request(app)
+      .get("/api/auth/profile")
+      .set("Authorization", `Bearer ${initialAccessToken}`);
+    expect(unchangedOwnerProfile.body.user.firstName).toBe("Updated");
 
     const unauthenticatedProfile = await request(app).get("/api/auth/profile");
     expect(unauthenticatedProfile.status).toBe(401);
@@ -343,24 +379,6 @@ describe("Authentication Integration", () => {
     expect(fileDownload.headers["cache-control"]).toBe("private, no-store");
     expect(Buffer.from(fileDownload.body).equals(png)).toBe(true);
 
-    const otherUser = await prisma.user.create({
-      data: {
-        firstName: "Other",
-        lastName: "Patient",
-        nationalId: `O${randomUUID().replace(/-/g, "").slice(0, 10)}`,
-        dateOfBirth: new Date("1990-01-01"),
-        phone: `+4916${randomInt(100000000, 999999999)}`,
-      },
-    });
-    const otherSession = await prisma.authSession.create({
-      data: {
-        userId: otherUser.id,
-        refreshTokenHash: randomUUID().replace(/-/g, "").padEnd(64, "0"),
-        expiresAt: new Date(Date.now() + 60_000),
-      },
-    });
-    const { generateAccessToken } = await import("../utils/jwt");
-    const otherAccessToken = generateAccessToken({ userId: otherUser.id, sessionId: otherSession.id });
     const forbiddenDownload = await request(app)
       .get(`/api/files/${fileId}`)
       .set("Authorization", `Bearer ${otherAccessToken}`);

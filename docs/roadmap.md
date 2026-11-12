@@ -107,14 +107,15 @@ Pezeshki یک سامانه نوبت‌دهی پزشکی با سه سطح اصل�
 - [ ] تکمیل User Profile API، از جمله سیاست‌های verification برای اطلاعات تماس و lifecycle داده.
 - [ ] تکمیل workflow عملیاتی lifecycle حساب (لیست/جستجوی Admin، احراز هویت قوی Admin، فرآیند appeal/lockout).
 - [x] ثبت AuditLog برای تغییر وضعیت حساب توسط Admin.
-- [ ] تست دسترسی افقی و عمودی (IDOR / privilege escalation).
+- [x] تست منفی دسترسی عمودی برای Admin endpoints و دسترسی افقی برای self-profile و private files.
 
 **معیار تکمیل:**
 - هر Endpoint محافظت‌شده نقش و مالکیت منابع را بررسی کند.
 - تغییر Role فقط از مسیر مجاز مدیریتی انجام شود.
 - تست‌های منفی برای دسترسی غیرمجاز وجود داشته باشد.
+- برای هر resource domain جدید (appointments, medical records, doctor resources)، مالکیت/رابطه دسترسی قبل از افزودن endpoint تعریف و جداگانه تست شود.
 
-**پیشرفت (2026-11-11):** policy پایه و self-profile API پیاده‌سازی و تست شده‌اند؛ profile فقط نام کوچک/نام خانوادگی را می‌پذیرد. Admin می‌تواند حساب هدف را با reason اجباری فعال/غیرفعال کند؛ غیرفعال‌سازی sessionها را لغو می‌کند، AuditLog ثبت می‌شود، self-deactivation و غیرفعال‌سازی آخرین Admin فعال رد می‌شوند. فهرست کاربران Admin با فیلترهای محدود، cursor pagination و projection حداقلی اضافه شده است. فایل‌های private نیز فعلاً owner-only هستند. ماتریس کامل business-domain، IDOR برای منابع درمانی، workflow کامل Admin و role transitionها همچنان باز هستند؛ Phase 2 کامل نیست. Phase 1 همچنان Partial است و این کار آن را کامل محسوب نمی‌کند.
+**پیشرفت (2026-11-11):** policy پایه، self-profile، فهرست و status management توسط Admin، audit و file owner-only checks پیاده‌سازی شده‌اند. تست integration نشان می‌دهد هر درخواست self-profile فقط هویت session خودش را می‌بیند/ویرایش می‌کند، بیمار به Admin endpoints دسترسی ندارد، و کاربر غیرمالک فایل را دریافت نمی‌کند. تست‌های authorization منفی و service نیز پوشش دارند. **Phase 2 هنوز کامل نیست و صادقانه قابل بستن نیست:** route دامنه‌ای برای Doctor/Appointment/Medical Records وجود ندارد؛ در نتیجه ماتریس مجوز دامنه‌ای و IDOR آن منابع قابل تعریف/تأیید نیست. workflow کامل Admin و role transition هم باز هستند. پیش از توسعه هر resource جدید، ownership matrix و تست‌های مربوطه الزامی است. Phase 1 همچنان Partial است.
 
 ### Phase 3 — Medical Specialties & Doctor Profiles
 
