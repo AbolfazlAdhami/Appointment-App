@@ -18,12 +18,32 @@ Missing policy actions must not be treated as public access. Protected routes mu
 |---|---:|---:|---:|---|
 | `auth.me` | Allow | Allow | Allow | Session must be active |
 | `auth.logout` | Allow | Allow | Allow | Revokes only the caller's session |
+| `contact.sendOtp` | Allow | Allow | Allow | Requires phone/email destination + purpose enum; rate-limited per destination |
+| `contact.verifyPhone` | Allow | Allow | Allow | Authenticated; verifies OTP against `OtpPurpose.PHONE_VERIFICATION` challenge, sets `phoneVerifiedAt` |
+| `contact.verifyEmail` | Allow | Allow | Allow | Authenticated; verifies OTP against EMAIL channel challenge, sets `emailVerifiedAt` |
 | `profile.read.self` | Allow | Allow | Allow | User ID comes only from authenticated session |
 | `profile.update.self` | Allow | Allow | Allow | Only first/last name; no client-selected owner or role change |
 | `admin.users.list` | Deny | Deny | Allow | Bounded cursor pagination; sensitive identifiers omitted |
-| `admin.users.status.update` | Deny | Deny | Allow | Reason required; no self-deactivation or last-active-admin deactivation; audit and session revoke on deactivation |
+| `admin.users.status.update` | Deny | Deny | Allow | Reason required; no self-deactivation or last-active-admin deactivation; audit and session revoke on deactivation; extended to role-transition logging |
 | `doctor.profile.read.self` | Deny | Allow | Deny | DoctorProfile selected by authenticated User ID |
 | `doctor.profile.update.self` | Deny | Allow | Deny | Allowlisted fields only; approved/suspended profiles are read-only |
+| `appeal.create` | Allow | Allow | Deny | Submitted by deactivated/pending users; enters PENDING state |
+| `appeal.list` | Deny | Deny | Allow | Admin-only list of non-rejected appeals with cursor pagination |
+| `appeal.read` | Deny | Deny | Allow | Admin review action; records reviewer ID, note, and timestamp |
+| `admin.credential.review` | Deny | Deny | Allow | Restricted to assigned reviewers |
+| `admin.doctorProfile.approve` | Deny | Deny | Allow | Triggers published state transition |
+| `admin.doctorProfile.reject` | Deny | Deny | Allow | Returns profile to DRAFT/NEEDS_CORRECTION |
+| `appointment.read.own` | Allow | Deny | Deny | Patient sees own appointments only |
+| `appointment.read.doctorOwn` | Deny | Allow | Deny | Doctor sees assigned schedule only |
+| `appointment.read.admin` | Deny | Deny | Allow | Audit access; requires justification logged |
+| `appointment.cancel.own` | Allow | Deny | Deny | Patient may cancel pending payments only |
+| `appointment.attendance.update` | Deny | Allow | Deny | Doctor marks arrival/completion |
+| `appointment.reassign` | Deny | Deny | Allow | Admin override |
+| `appointment.forceCancel` | Deny | Deny | Allow | Admin override for policy violations |
+| `clinical.record.read.doctorOwn` | Deny | Allow | Deny | Doctor reads/writes own visit records |
+| `clinical.record.read.own` | Allow | Deny | Deny | Patient reads own clinical records |
+| `clinical.record.read.admin` | Deny | Deny | Allow | Audit access; justification logged via `clinical.auditLogRead` |
+| `clinical.auditLogRead` | Deny | Deny | Allow | Gate for admin clinical audit trails |
 
 Registration, OTP request, login, and refresh remain public/session-bootstrap actions. Their own request validation and OTP/session rules still apply.
 
