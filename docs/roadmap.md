@@ -102,10 +102,11 @@ Pezeshki یک سامانه نوبت‌دهی پزشکی با سه سطح اصل�
 - [x] مدیریت فعال/غیرفعال‌سازی حساب توسط Admin با reason، audit، لغو session و حفاظت آخرین Admin فعال.
 - [x] فهرست کاربران Admin با فیلتر role/status، cursor pagination و فیلدهای حداقلی.
 - [x] API فایل private با کنترل مالکیت برای خود مالک؛ مجوزهای رابطه درمانی هنوز وجود ندارد.
-- [ ] تکمیل ماتریس دسترسی Patient / Doctor / Admin برای ماژول‌های کسب‌وکار.
+- [x] API پایه پروفایل Doctor با مالکیت مبتنی بر هویت احرازشده و فیلدهای قابل ویرایش allowlist شده.
+- [ ] تکمیل ماتریس دسترسی Patient / Doctor / Admin برای ماژول‌های Appointment/Clinical/Admin review.
 - [ ] جلوگیری از دسترسی کاربر به منابع متعلق به دیگران در ماژول‌های Doctor/Appointment/Medical Records.
 - [ ] تکمیل User Profile API، از جمله سیاست‌های verification برای اطلاعات تماس و lifecycle داده.
-- [ ] تکمیل workflow عملیاتی lifecycle حساب (لیست/جستجوی Admin، احراز هویت قوی Admin، فرآیند appeal/lockout).
+- [ ] تکمیل workflow lifecycle حساب (appeal/reinstatement، MFA/strong auth برای Admin، role transition مجاز و audited).
 - [x] ثبت AuditLog برای تغییر وضعیت حساب توسط Admin.
 - [x] تست منفی دسترسی عمودی برای Admin endpoints و دسترسی افقی برای self-profile و private files.
 
@@ -115,7 +116,7 @@ Pezeshki یک سامانه نوبت‌دهی پزشکی با سه سطح اصل�
 - تست‌های منفی برای دسترسی غیرمجاز وجود داشته باشد.
 - برای هر resource domain جدید (appointments, medical records, doctor resources)، مالکیت/رابطه دسترسی قبل از افزودن endpoint تعریف و جداگانه تست شود.
 
-**پیشرفت (2026-11-11):** policy پایه، self-profile، فهرست و status management توسط Admin، audit و file owner-only checks پیاده‌سازی شده‌اند. تست integration نشان می‌دهد هر درخواست self-profile فقط هویت session خودش را می‌بیند/ویرایش می‌کند، بیمار به Admin endpoints دسترسی ندارد، و کاربر غیرمالک فایل را دریافت نمی‌کند. تست‌های authorization منفی و service نیز پوشش دارند. **Phase 2 هنوز کامل نیست و صادقانه قابل بستن نیست:** route دامنه‌ای برای Doctor/Appointment/Medical Records وجود ندارد؛ در نتیجه ماتریس مجوز دامنه‌ای و IDOR آن منابع قابل تعریف/تأیید نیست. workflow کامل Admin و role transition هم باز هستند. پیش از توسعه هر resource جدید، ownership matrix و تست‌های مربوطه الزامی است. Phase 1 همچنان Partial است.
+**پیشرفت (2026-11-11):** policy پایه، self-profile، فهرست و status management توسط Admin، audit و file owner-only checks پیاده‌سازی شده‌اند. API پروفایل Doctor نیز به‌صورت `/api/doctor/profile/me` اضافه شده است: lookup/update فقط بر اساس `userId` session، allowlist فیلدها، رد دسترسی غیر-Doctor و read-only بودن پروفایل‌های APPROVED/SUSPENDED. Unit و DB integration testها role denial، isolation مالکیت و status lock را پوشش می‌دهند. **Phase 2 هنوز کامل نیست:** appointment، medical-record، credential-review و doctor-patient relation endpoints وجود ندارند؛ در نتیجه ماتریس دسترسی و IDOR آن‌ها قابل ادعا/تأیید نیست. Email/phone verification، policy و lifecycle تغییر اطلاعات تماس، تصمیم freeze/edit مجدد پس از submission، appeal، MFA قوی Admin و role transitionهای audited باز هستند. پیش از افزودن endpointهای دامنه‌ای، ماتریس ownership و تست‌ها الزامی است. Phase 1 همچنان Partial است.
 
 ### Phase 3 — Medical Specialties & Doctor Profiles
 

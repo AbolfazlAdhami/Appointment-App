@@ -36,4 +36,4 @@ The response contains `users` and `pagination` (`limit`, `nextCursor`, `hasMore`
 
 ## Scope limitations
 
-This endpoint does not provide free-text search, role changes, account deletion, appeal flow, or admin MFA. Those need separate product/security decisions and audited workflows.
+This API does not provide free-text search, role changes, account deletion, appeal flow, or admin MFA. Those need separate product/security decisions and audited workflows.

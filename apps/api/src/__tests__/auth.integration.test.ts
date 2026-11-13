@@ -39,7 +39,7 @@ vi.mock("../providers/object-storage/s3-object-storage.provider", () => ({
 
 import app from "../app";
 import { prisma } from "../libs/prisma";
-import { Role } from "../generated/prisma/client";
+import { DoctorVerificationStatus, Role } from "../generated/prisma/client";
 import { generateAccessToken } from "../utils/jwt";
 
 const databaseName = new URL(process.env.DATABASE_URL!).pathname.slice(1);
@@ -306,6 +306,65 @@ describe("Authentication Integration", () => {
       },
     });
     const otherAccessToken = generateAccessToken({ userId: otherUser.id, sessionId: otherSession.id });
+
+    const doctorSuffix = randomUUID().replace(/-/g, "").slice(0, 10);
+    const doctorUser = await prisma.user.create({
+      data: {
+        firstName: "Doctor",
+        lastName: "Integration",
+        nationalId: `D${doctorSuffix}`,
+        dateOfBirth: new Date("1985-01-01"),
+        phone: `+4918${randomInt(100000000, 999999999)}`,
+        role: Role.DOCTOR,
+        doctorProfile: { create: { headline: "Initial profile", verificationStatus: DoctorVerificationStatus.DRAFT } },
+      },
+    });
+    const doctorSession = await prisma.authSession.create({
+      data: {
+        userId: doctorUser.id,
+        refreshTokenHash: randomUUID().replace(/-/g, "").padEnd(64, "0"),
+        expiresAt: new Date(Date.now() + 60_000),
+      },
+    });
+    const doctorToken = generateAccessToken({ userId: doctorUser.id, sessionId: doctorSession.id });
+
+    const doctorProfile = await request(app)
+      .get("/api/doctor/profile/me")
+      .set("Authorization", `Bearer ${doctorToken}`);
+    expect(doctorProfile.status).toBe(200);
+    expect(doctorProfile.body.profile.userId).toBeUndefined();
+    expect(doctorProfile.body.profile.headline).toBe("Initial profile");
+
+    const doctorProfileUpdate = await request(app)
+      .patch("/api/doctor/profile/me")
+      .set("Authorization", `Bearer ${doctorToken}`)
+      .send({ headline: "Updated doctor profile", yearsOfExperience: 15 });
+    expect(doctorProfileUpdate.status).toBe(200);
+    expect(doctorProfileUpdate.body.profile.headline).toBe("Updated doctor profile");
+
+    const patientDoctorProfile = await request(app)
+      .get("/api/doctor/profile/me")
+      .set("Authorization", `Bearer ${initialAccessToken}`);
+    expect(patientDoctorProfile.status).toBe(403);
+
+    const patientDoctorProfileUpdate = await request(app)
+      .patch("/api/doctor/profile/me")
+      .set("Authorization", `Bearer ${initialAccessToken}`)
+      .send({ headline: "Unauthorized edit" });
+    expect(patientDoctorProfileUpdate.status).toBe(403);
+
+    await prisma.doctorProfile.update({
+      where: { userId: doctorUser.id },
+      data: { verificationStatus: DoctorVerificationStatus.APPROVED },
+    });
+    const approvedProfileUpdate = await request(app)
+      .patch("/api/doctor/profile/me")
+      .set("Authorization", `Bearer ${doctorToken}`)
+      .send({ headline: "Should remain unchanged" });
+    expect(approvedProfileUpdate.status).toBe(409);
+
+    await prisma.doctorProfile.delete({ where: { userId: doctorUser.id } });
+    await prisma.user.delete({ where: { id: doctorUser.id } });
 
     const profile = await request(app).get("/api/auth/profile").set("Authorization", `Bearer ${initialAccessToken}`);
     expect(profile.status).toBe(200);

@@ -8,6 +8,7 @@ import { requestPhoneOtp } from "../services/otp.service";
 import { RegisterSchema, RequestPhoneOtpSchema } from "../schemas/auth-request.schema";
 import { UpdateProfileSchema } from "../schemas/profile.schema";
 import { getUserProfile, updateUserProfile } from "../services/profile.service";
+import { requestContactOtp, verifyPhoneContactOtp, verifyEmailContactOtp } from "../services/contact-verification.service";
 
 function setRefreshCookie(res: Response, token: string, expiresAt: Date): void {
   res.cookie("refreshToken", token, {
@@ -254,4 +255,75 @@ export async function requestOtp(req: Request, res: Response): Promise<void> {
       message: "Unable to process OTP request",
     });
   }
+}
+
+// ── Contact verification endpoints ───────────────────────────────────────────
+
+const ContactSendOtpSchema = z.object({
+  destination: z.string().trim().min(8),
+  purpose: z.enum(["SIGNUP", "LOGIN", "PHONE_VERIFICATION"]),
+});
+
+export async function sendContactOtp(req: Request, res: Response): Promise<void> {
+  const validation = ContactSendOtpSchema.safeParse(req.body);
+
+  if (!validation.success) {
+    res.status(400).json({ message: "Invalid contact OTP request", errors: validation.error.flatten() });
+    return;
+  }
+
+  try {
+    const result = await requestContactOtp({
+      destination: validation.data.destination,
+      purpose: validation.data.purpose as any,
+    });
+    res.status(200).json(result);
+  } catch (error) {
+    console.error("[AUTH][CONTACT_SEND_OTP]", error);
+    res.status(500).json({ message: "Unable to send verification code" });
+  }
+}
+
+const ContactVerifySchema = z.object({
+  destination: z.string().trim().min(8),
+  code: z.string().regex(/^\d{6}$/),
+  channel: z.enum(["SMS", "EMAIL"]),
+});
+
+export async function verifyContactOtp(req: AuthenticatedRequest, res: Response): Promise<void> {
+  const user = req.user;
+  if (!user) {
+    res.status(401).json({ message: "Authentication required" });
+    return;
+  }
+
+  const validation = ContactVerifySchema.safeParse(req.body);
+  if (!validation.success) {
+    res.status(400).json({ message: "Invalid verification payload", errors: validation.error.flatten() });
+    return;
+  }
+
+  let ok: boolean;
+  if (validation.data.channel === "SMS") {
+    const result = await verifyPhoneContactOtp({
+      destination: validation.data.destination,
+      code: validation.data.code,
+      actorUserId: user.userId,
+    });
+    ok = result.success;
+  } else {
+    const result = await verifyEmailContactOtp({
+      destination: validation.data.destination,
+      code: validation.data.code,
+      actorUserId: user.userId,
+    });
+    ok = result.success;
+  }
+
+  if (!ok) {
+    res.status(401).json({ message: "Invalid or expired verification code" });
+    return;
+  }
+
+  res.status(200).json({ message: "Contact verified successfully" });
 }

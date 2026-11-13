@@ -37,6 +37,8 @@ model User {
   messageReadReceipts        MessageReadReceipt[]
   notifications              Notification[]
   notificationPreferences    NotificationPreference[]
+  appealedBy                 Appeal[]                     @relation("AppealOwner")
+  reviewedAppeals            Appeal[]                     @relation("AppealReviewer")
   updatedSettings            SystemSetting[]           @relation("SettingUpdater")
 
   @@index([role, isActive])
@@ -160,4 +162,22 @@ model SecurityEvent {
 
   @@index([userId, createdAt])
   @@index([eventType, createdAt])
+}
+
+model Appeal {
+  id            String        @id @default(cuid())
+  userId        String
+  reason        String
+  status        AppealStatus  @default(PENDING)
+  reviewedById  String?
+  reviewNote    String?
+  reviewedAt    DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  user          User          @relation("AppealOwner", fields: [userId], references: [id], onDelete: Cascade)
+  reviewer      User?         @relation("AppealReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+  @@index([reviewedById, status])
 }

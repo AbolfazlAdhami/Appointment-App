@@ -7,7 +7,7 @@ export type UpdateUserStatusResult =
   | { kind: "self_deactivation" }
   | { kind: "last_active_admin" }
   | { kind: "unchanged"; user: { id: string; role: Role; isActive: boolean } }
-  | { kind: "updated"; user: { id: string; role: Role; isActive: boolean } };
+  | { kind: "updated"; user: { id: string; role: Role; isActive: boolean; previousRole?: Role } };
 
 export async function updateUserStatus(input: {
   actorUserId: string;
@@ -17,7 +17,7 @@ export async function updateUserStatus(input: {
   return prisma.$transaction(async (tx) => {
     const target = await tx.user.findUnique({
       where: { id: input.targetUserId },
-      select: { id: true, role: true, isActive: true },
+      select: { id: true, role: true, isActive: true, firstName: true, lastName: true },
     });
 
     if (!target) return { kind: "not_found" };
@@ -27,13 +27,15 @@ export async function updateUserStatus(input: {
     }
 
     if (target.isActive === input.payload.isActive) {
-      return { kind: "unchanged", user: target };
+      return { kind: "unchanged", user: { id: target.id, role: target.role, isActive: target.isActive } };
     }
 
     if (!input.payload.isActive && target.role === Role.ADMIN) {
       const activeAdminCount = await tx.user.count({ where: { role: Role.ADMIN, isActive: true } });
       if (activeAdminCount <= 1) return { kind: "last_active_admin" };
     }
+
+    const previousRole = target.role;
 
     await tx.user.update({
       where: { id: target.id },
@@ -58,6 +60,7 @@ export async function updateUserStatus(input: {
         reason: input.payload.reason,
         changes: {
           isActive: { from: target.isActive, to: input.payload.isActive },
+          ...(previousRole !== target.role ? { role: { from: previousRole, to: target.role } } : {}),
         },
       },
     });

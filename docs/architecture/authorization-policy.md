@@ -22,6 +22,8 @@ Missing policy actions must not be treated as public access. Protected routes mu
 | `profile.update.self` | Allow | Allow | Allow | Only first/last name; no client-selected owner or role change |
 | `admin.users.list` | Deny | Deny | Allow | Bounded cursor pagination; sensitive identifiers omitted |
 | `admin.users.status.update` | Deny | Deny | Allow | Reason required; no self-deactivation or last-active-admin deactivation; audit and session revoke on deactivation |
+| `doctor.profile.read.self` | Deny | Allow | Deny | DoctorProfile selected by authenticated User ID |
+| `doctor.profile.update.self` | Deny | Allow | Deny | Allowlisted fields only; approved/suspended profiles are read-only |
 
 Registration, OTP request, login, and refresh remain public/session-bootstrap actions. Their own request validation and OTP/session rules still apply.
 
@@ -39,8 +41,11 @@ Registration, OTP request, login, and refresh remain public/session-bootstrap ac
 - Self-profile routes expose/update only the authenticated user's own basic profile. Admin account status actions are limited to activate/deactivate and do not allow role changes.
 - Admin identity provisioning, MFA, role transitions, and broader audit retention/access policies need product/security decisions.
 - Admin user list intentionally has no national ID, phone, password hash, arbitrary search, or bulk actions.
+- Doctor self-profile endpoints do not accept a doctor/profile ID from the client. Public listing, admin review, specialties, credentials, and doctor-patient data access remain separate scopes.
+- No appointment or clinical-record HTTP route exists yet. The Prisma relations are not an authorization decision; clinical sharing rules must be approved before adding those routes.
+- Email/phone verification lifecycle, account appeal/reinstatement, and admin role transition workflows remain unimplemented.
 - CSRF protections for refresh-cookie requests remain a Phase 1 security-hardening item.
 
 ## Verification
 
-`apps/api/src/middlewares/__tests__/authorization.middleware.test.ts` checks unauthenticated denial, role denial, allowed roles, action policy entries, and multi-role checks. `apps/api/src/services/__tests__/admin-user.service.test.ts` checks status transitions, session revocation, audit, self/last-admin protections, and validation. `apps/api/src/services/__tests__/admin-user-list.service.test.ts` checks bounded paging and field selection. Route-level DB integration covers authorized/unauthorized status and list operations. Domain ownership/IDOR tests remain required as those routes are introduced.
+`apps/api/src/middlewares/__tests__/authorization.middleware.test.ts` checks unauthenticated denial, role denial, allowed roles, action policy entries, and multi-role checks. `apps/api/src/services/__tests__/admin-user.service.test.ts` checks status transitions, session revocation, audit, self/last-admin protections, and validation. `apps/api/src/services/__tests__/admin-user-list.service.test.ts` checks bounded paging and field selection. `apps/api/src/services/__tests__/doctor-profile.service.test.ts` checks user-scoped lookup, writes, and immutable approved/suspended status. DB integration covers Patient denial and Doctor self-profile behavior. Appointment/clinical IDOR tests are a prerequisite for those routes and remain open.
