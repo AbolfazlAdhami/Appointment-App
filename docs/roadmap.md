@@ -37,7 +37,7 @@ Pezeshki یک سامانه نوبت‌دهی پزشکی با سه سطح اصل�
 | Logout و لغو Session | Implemented / integration-tested | Access و Refresh قبلی پس از لغو رد می‌شوند |
 | OTP Login | Implemented / automated integration test | OTP مصرف‌شده، malformed و استفاده مجدد رد می‌شوند |
 | تست خودکار Auth | Partial / 19 passing | چهار فایل تست پاس؛ Reset/Phone Verification و تست‌های production hardening ندارند |
-| Authorization & User Management | Partial | policy پایه، self-profile، فایل owner-only و admin account status؛ ماتریس کامل و دامنه‌های باقی‌مانده باز هستند |
+| Authorization & User Management | Partial (’infrastructure done) | policy پایه، self-profile، file owner-only، admin account status، contact verification، appeal scaffolding؛ endpointهای Appointment/Clinical باز هستند |
 | Doctor / Appointment | Planned | هنوز در نقشه راه |
 | Frontend workflowها | Planned / در حال توسعه مستقل | نیازمند اتصال به APIهای پایدار |
 
@@ -103,10 +103,10 @@ Pezeshki یک سامانه نوبت‌دهی پزشکی با سه سطح اصل�
 - [x] فهرست کاربران Admin با فیلتر role/status، cursor pagination و فیلدهای حداقلی.
 - [x] API فایل private با کنترل مالکیت برای خود مالک؛ مجوزهای رابطه درمانی هنوز وجود ندارد.
 - [x] API پایه پروفایل Doctor با مالکیت مبتنی بر هویت احرازشده و فیلدهای قابل ویرایش allowlist شده.
-- [ ] تکمیل ماتریس دسترسی Patient / Doctor / Admin برای ماژول‌های Appointment/Clinical/Admin review.
-- [ ] جلوگیری از دسترسی کاربر به منابع متعلق به دیگران در ماژول‌های Doctor/Appointment/Medical Records.
-- [ ] تکمیل User Profile API، از جمله سیاست‌های verification برای اطلاعات تماس و lifecycle داده.
-- [ ] تکمیل workflow lifecycle حساب (appeal/reinstatement، MFA/strong auth برای Admin، role transition مجاز و audited).
+- [ ] تکمیل ماتریس دسترسی Patient / Doctor / Admin برای ماژول‌های Appointment/Clinical/Admin review (definitive در policy.ts، route/endpoint در Phase 3+).
+- [ ] جلوگیری از دسترسی کاربر به منابع متعلق به دیگران در ماژول‌های Doctor/Appointment/Medical Records (بدون endpoint دامنه‌ای قابل اجرا نیست).
+- [x] تکمیل User Profile API و سیاست‌های verification برای اطلاعات تماس (contact/send-otp + verify).
+- [ ] تکمیل workflow lifecycle حساب (appeal bone-arrastre در policy+service+controller+route، migration pending؛ MFA/strong auth و role transition audited باز هستند).
 - [x] ثبت AuditLog برای تغییر وضعیت حساب توسط Admin.
 - [x] تست منفی دسترسی عمودی برای Admin endpoints و دسترسی افقی برای self-profile و private files.
 
