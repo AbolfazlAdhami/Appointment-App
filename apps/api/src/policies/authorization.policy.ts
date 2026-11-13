@@ -55,6 +55,19 @@ export const authorizationPolicy = {
   "appeal.create": [Role.PATIENT, Role.DOCTOR],
   "appeal.list": [Role.ADMIN],
   "appeal.read": [Role.ADMIN],
+
+  // ── Public Doctor Directory (IMPLEMENTED) ─────────────────────────
+  "doctor.list": [Role.PATIENT, Role.DOCTOR, Role.ADMIN],
+  "doctor.read.public": [Role.PATIENT, Role.DOCTOR, Role.ADMIN],
+  "doctor.services.read": [Role.PATIENT, Role.DOCTOR, Role.ADMIN],
+
+  // ── Doctor Specialty & Credential Management (IMPLEMENTED) ────────
+  "doctor.specialty.manage": [Role.DOCTOR],
+  "doctor.credential.manage": [Role.DOCTOR],
+
+  // ── Admin Doctor Review (PLANNED) ─────────────────────────────────
+  "admin.doctorProfile.review.list": [Role.ADMIN],
+  "admin.doctorProfile.review.detail": [Role.ADMIN],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type AuthorizationAction = keyof typeof authorizationPolicy;
