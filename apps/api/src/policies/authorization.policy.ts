@@ -22,6 +22,8 @@ export const authorizationPolicy = {
   "profile.update.self": [Role.PATIENT, Role.DOCTOR, Role.ADMIN],
   "doctor.profile.read.self": [Role.DOCTOR],
   "doctor.profile.update.self": [Role.DOCTOR],
+  "doctor.profile.create.self": [Role.DOCTOR],
+  "doctor.profile.submit.self": [Role.DOCTOR],
 
   // ── File Assets (IMPLEMENTED) ───────────────────────────────────
   "file.upload.self": [Role.PATIENT, Role.DOCTOR, Role.ADMIN],

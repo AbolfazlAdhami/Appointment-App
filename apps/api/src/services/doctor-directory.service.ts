@@ -150,7 +150,6 @@ export async function getDoctorPublicDetails(doctorId: string) {
   return {
     id: doctor.id,
     doctorName: `${user.firstName} ${user.lastName}`.trim(),
-    phone: user.phone,
     headline: doctor.headline,
     shortIntroduction: doctor.shortIntroduction,
     biography: doctor.biography,

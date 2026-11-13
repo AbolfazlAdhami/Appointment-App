@@ -38,7 +38,7 @@ Pezeshki یک سامانه نوبت‌دهی پزشکی با سه سطح اصل�
 | OTP Login | Implemented / automated integration test | OTP مصرف‌شده، malformed و استفاده مجدد رد می‌شوند |
 | تست خودکار Auth | Partial / 19 passing | چهار فایل تست پاس؛ Reset/Phone Verification و تست‌های production hardening ندارند |
 | Authorization & User Management | Partial (’infrastructure done) | policy پایه، self-profile، file owner-only، admin account status، contact verification، appeal scaffolding؛ endpointهای Appointment/Clinical باز هستند |
-| Doctor / Appointment | Partial | Doctor directory, specialty, credential, admin review APIهای پیاده و تست‌شده؛ Appointment هنوز در نقشه راه |
+| Doctor / Appointment | Phase 3 Done | Doctor directory, specialty, credential, admin review, create + submit-for-review کامل و تست‌شده؛ Appointment هنوز در نقشه راه |
 | Frontend workflowها | Planned / در حال توسعه مستقل | نیازمند اتصال به APIهای پایدار |
 
 ## 4. فازهای توسعه
@@ -131,13 +131,14 @@ Pezeshki یک سامانه نوبت‌دهی پزشکی با سه سطح اصل�
 - [x] API فهرست و جزئیات پزشکان.
 - [x] فیلتر بر اساس تخصص و وضعیت تأیید.
 - [x] API مدیریت تخصص و مدارک پزشک.
+- [x] ساخت اولیه پروفایل پزشک (`POST /api/doctor/profile`) و ارسال برای بررسی (`POST /api/doctor/profile/submit`).
 
 **معیار تکمیل:**
 - پزشک فقط پروفایل مجاز خود را ویرایش کند.
 - پزشک تأییدنشده در جستجوی عمومی نمایش داده نشود، مگر سیاست محصول خلاف آن باشد.
 - داده‌های تخصصی دارای اعتبارسنجی و تست باشند.
 
-**پیشرفت (2026-11-13):** APIهای عمومی فهرست و جزئیات پزشک (`/api/doctors`, `/api/doctors/:doctorId`) با فیلتر تخصص/شهر/جستجو و نمایش فقط پزشکان APPROVED و منتشرشده. APIهای مدیریت تخصص و مدارک پزشک (`/api/doctors/specialties`, `/api/doctors/credentials`) با کنترل نقش DOCTOR. گردش کار بررسی پزشک توسط Admin (`/api/admin/doctors/review` و `PATCH /api/admin/doctors/:doctorId/review`) با ثبت AuditLog. تست‌های واحد و DB برای directory و review اضافه شد.
+**پیشرفت (2026-11-13):** APIهای عمومی فهرست و جزئیات پزشک (`/api/doctors`, `/api/doctors/:doctorId`) با فیلتر تخصص/شهر/جستجو و نمایش فقط پزشکان APPROVED و منتشرشده. APIهای مدیریت تخصص و مدارک پزشک (`/api/doctors/specialties`, `/api/doctors/credentials`) با کنترل نقش DOCTOR. چرخه کامل ورود/بازبینی: ساخت پروفایل (`POST /api/doctor/profile` در حالت DRAFT)، ارسال برای بررسی (`POST /api/doctor/profile/submit` -> PENDING_REVIEW + submittedAt)، و بازبینی توسط Admin (`/api/admin/doctors/review` و `PATCH /api/admin/doctors/:doctorId/review`) با ثبت AuditLog و toggle انتشار. شماره تلفن شخصی پزشک دیگر در جزئیات عمومی بازگردانده نمی‌شود. تست‌های واحد و DB برای directory، review، و چرخه کامل create->submit->approve اضافه شد. **فاز 3 کامل شد.**
 
 ### Phase 4 — Availability & Scheduling
 

@@ -14,3 +14,13 @@ export const UpdateDoctorProfileSchema = z
   });
 
 export type UpdateDoctorProfileInput = z.infer<typeof UpdateDoctorProfileSchema>;
+
+export const CreateDoctorProfileSchema = z.object({
+  headline: z.string().trim().max(160).nullable().optional(),
+  shortIntroduction: z.string().trim().max(500).nullable().optional(),
+  biography: z.string().trim().max(10_000).nullable().optional(),
+  yearsOfExperience: z.number().int().min(0).max(80).nullable().optional(),
+  videoUrl: z.string().url().max(2048).nullable().optional(),
+});
+
+export type CreateDoctorProfileInput = z.infer<typeof CreateDoctorProfileSchema>;

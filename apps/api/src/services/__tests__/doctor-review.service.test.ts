@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { DoctorVerificationStatus, Role } from "../../generated/prisma/client";
 import { prisma } from "../../libs/prisma";
 import { listDoctorsForReview, reviewDoctorProfile } from "../doctor-review.service";
@@ -47,6 +47,14 @@ describe("doctor-review service", () => {
     });
   });
 
+  afterEach(async () => {
+    await prisma.$transaction([
+      prisma.doctorProfile.deleteMany({ where: { userId: doctorUserId } }),
+      prisma.auditLog.deleteMany({ where: { actorUserId: adminUserId } }),
+      prisma.user.deleteMany({ where: { id: { in: [doctorUserId, adminUserId] } } }),
+    ]);
+  });
+
   it("approves a pending doctor and publishes the profile", async () => {
     const doctor = await prisma.doctorProfile.findUniqueOrThrow({
       where: { userId: doctorUserId },
@@ -93,14 +101,15 @@ describe("doctor-review service", () => {
     expect(second.kind).toBe("already_reviewed");
   });
 
-  it("lists pending doctors for admin review", async () => {
+  it("lists the pending doctor for admin review", async () => {
     const result = await listDoctorsForReview({
       actorUserId: adminUserId,
       limit: 10,
       status: DoctorVerificationStatus.PENDING_REVIEW,
     });
 
-    expect(result.total).toBe(1);
-    expect(result.items[0].doctorName).toBe("Pending Doctor");
+    const mine = result.items.find((d) => d.userId === doctorUserId);
+    expect(mine).toBeDefined();
+    expect(mine?.doctorName).toBe("Pending Doctor");
   });
 });
