@@ -33,11 +33,23 @@ export async function createDoctorCredential(params: {
 }) {
   const doctorProfile = await prisma.doctorProfile.findUnique({
     where: { userId: params.actorUserId },
-    select: { id: true },
+    select: { id: true, verificationStatus: true },
   });
 
   if (!doctorProfile) {
     return { kind: "not_found" as const };
+  }
+
+  if (["APPROVED", "SUSPENDED"].includes(doctorProfile.verificationStatus)) {
+    return { kind: "read_only" as const };
+  }
+
+  const ownedFile = await prisma.fileAsset.findFirst({
+    where: { id: params.payload.fileAssetId, ownerUserId: params.actorUserId, isPrivate: true },
+    select: { id: true },
+  });
+  if (!ownedFile) {
+    return { kind: "file_not_owned" as const };
   }
 
   const credential = await prisma.doctorCredential.create({
@@ -71,12 +83,23 @@ export async function removeDoctorCredential(params: {
 }) {
   const doctorProfile = await prisma.doctorProfile.findUnique({
     where: { userId: params.actorUserId },
-    select: { id: true },
+    select: { id: true, verificationStatus: true },
   });
 
   if (!doctorProfile) {
     return { kind: "not_found" as const };
   }
+
+  if (["APPROVED", "SUSPENDED"].includes(doctorProfile.verificationStatus)) {
+    return { kind: "read_only" as const };
+  }
+
+  const credential = await prisma.doctorCredential.findFirst({
+    where: { id: params.credentialId, doctorProfileId: doctorProfile.id },
+    select: { id: true, status: true },
+  });
+  if (!credential) return { kind: "removed" as const, count: 0 };
+  if (credential.status !== "PENDING_REVIEW") return { kind: "read_only" as const };
 
   const deleted = await prisma.doctorCredential.deleteMany({
     where: {

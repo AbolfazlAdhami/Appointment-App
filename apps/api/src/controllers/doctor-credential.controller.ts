@@ -66,5 +66,5 @@ export async function removeDoctorCredentialHandler(req: AuthenticatedRequest, r
     return;
   }
 
-  res.status(200).json({ removed: result.count > 0 });
+  res.status(200).json({ removed: (result.count ?? 0) > 0 });
 }

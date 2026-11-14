@@ -1,21 +1,40 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { randomUUID } from "node:crypto";
 import { AppealStatus, Role } from "../../generated/prisma/client";
 import { prisma } from "../../libs/prisma";
 import { createAppeal, listOpenAppeals, reviewAppeal } from "../appeal.service";
 
-describe.skip("appeal service", () => {
-  const patientId = "appeal-patient-1";
-  const adminId = "appeal-admin-1";
+describe("appeal service", () => {
+  let patientId: string;
+  let adminId: string;
+  let patientPhone: string;
+  let adminPhone: string;
+  let patientNationalId: string;
+  let adminNationalId: string;
 
   beforeEach(async () => {
+    const suffix = randomUUID().replace(/-/g, "").slice(0, 10);
+    patientId = `appeal-patient-${suffix}`;
+    adminId = `appeal-admin-${suffix}`;
+    patientPhone = `+989${randomUUID().replace(/-/g, "").slice(0, 9)}`;
+    adminPhone = `+989${randomUUID().replace(/-/g, "").slice(0, 9)}`;
+    patientNationalId = `P${suffix}`;
+    adminNationalId = `A${suffix}`;
+
     await prisma.$transaction([
       prisma.appeal.deleteMany({}),
       prisma.auditLog.deleteMany({}),
       prisma.user.deleteMany({ where: { id: { in: [patientId, adminId] } } }),
     ]);
 
-    await prisma.user.create({ data: { id: patientId, firstName: "A", lastName: "B", nationalId: "9990000001", dateOfBirth: new Date("2000-01-01"), phone: "+989000000001", role: Role.PATIENT } });
-    await prisma.user.create({ data: { id: adminId, firstName: "Admin", lastName: "One", nationalId: "9990000002", dateOfBirth: new Date("1990-01-01"), phone: "+989000000002", role: Role.ADMIN } });
+    await prisma.user.create({ data: { id: patientId, firstName: "A", lastName: "B", nationalId: patientNationalId, dateOfBirth: new Date("2000-01-01"), phone: patientPhone, role: Role.PATIENT, isActive: false } });
+    await prisma.user.create({ data: { id: adminId, firstName: "Admin", lastName: "One", nationalId: adminNationalId, dateOfBirth: new Date("1990-01-01"), phone: adminPhone, role: Role.ADMIN } });
+  });
+
+  afterEach(async () => {
+    await prisma.auditLog.deleteMany({ where: { entityType: "Appeal" } });
+    await prisma.appeal.deleteMany({ where: { userId: patientId } });
+    await prisma.user.deleteMany({ where: { id: { in: [patientId, adminId] } } });
   });
 
   it("should create a pending appeal and include it in open list", async () => {

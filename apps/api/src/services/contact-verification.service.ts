@@ -1,4 +1,4 @@
-import { randomInt } from "node:crypto";
+import { createHmac, randomInt, timingSafeEqual } from "node:crypto";
 import { OtpChannel, OtpPurpose } from "../generated/prisma/client";
 import { env } from "../config/env";
 import { prisma } from "../libs/prisma";
@@ -20,8 +20,45 @@ function generateCode(): string {
 }
 
 function hashCode(destination: string, purpose: string, code: string): string {
-  const crypto = require("node:crypto");
-  return crypto.createHmac("sha256", env.otpSecret).update(`${destination}:${purpose}:${code}`).digest("hex");
+  return createHmac("sha256", env.otpSecret).update(`${destination}:${purpose}:${code}`).digest("hex");
+}
+
+function hashesEqual(expectedHex: string, actualHex: string): boolean {
+  const expected = Buffer.from(expectedHex, "hex");
+  const actual = Buffer.from(actualHex, "hex");
+  return expected.length === actual.length && timingSafeEqual(expected, actual);
+}
+
+async function recordFailedAttempt(challenge: {
+  id: string;
+  attempts: number;
+  maxAttempts: number;
+}, now: Date): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    const updated = await tx.otpChallenge.updateMany({
+      where: {
+        id: challenge.id,
+        consumedAt: null,
+        expiresAt: { gt: now },
+        attempts: { lt: challenge.maxAttempts },
+      },
+      data: { attempts: { increment: 1 } },
+    });
+
+    if (updated.count !== 1) return;
+
+    const current = await tx.otpChallenge.findUnique({
+      where: { id: challenge.id },
+      select: { attempts: true, maxAttempts: true, consumedAt: true },
+    });
+
+    if (current && current.attempts >= current.maxAttempts && current.consumedAt === null) {
+      await tx.otpChallenge.updateMany({
+        where: { id: challenge.id, consumedAt: null },
+        data: { consumedAt: now },
+      });
+    }
+  });
 }
 
 export interface RequestContactOtpInput {
@@ -104,22 +141,26 @@ export async function verifyPhoneContactOtp(params: {
     return { success: false };
   }
 
+  const owner = await prisma.user.findUnique({
+    where: { id: params.actorUserId },
+    select: { phone: true },
+  });
+  if (!owner || normalizePhone(owner.phone) !== normalized) {
+    return { success: false };
+  }
+
   const challenge = await prisma.otpChallenge.findFirst({
-    where: { destination: normalized, purpose: OtpPurpose.PHONE_VERIFICATION, consumedAt: null },
+    where: { destination: normalized, purpose: OtpPurpose.PHONE_VERIFICATION, channel: OtpChannel.SMS, consumedAt: null },
     orderBy: { createdAt: "desc" },
   });
 
   if (!challenge || challenge.expiresAt <= now) return { success: false };
 
   const expectedHash = hashCode(normalized, OtpPurpose.PHONE_VERIFICATION, params.code);
-  const isValid = challenge.codeHash === expectedHash;
+  const isValid = hashesEqual(challenge.codeHash, expectedHash);
 
   if (!isValid) {
-    if (challenge.attempts + 1 >= challenge.maxAttempts) {
-      await prisma.otpChallenge.update({ where: { id: challenge.id }, data: { consumedAt: now } });
-    } else {
-      await prisma.otpChallenge.update({ where: { id: challenge.id }, data: { attempts: challenge.attempts + 1 } });
-    }
+    await recordFailedAttempt(challenge, now);
     return { success: false };
   }
 
@@ -140,27 +181,36 @@ export async function verifyEmailContactOtp(params: {
 }): Promise<{ success: boolean }> {
   const now = new Date();
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(params.destination) || !/^\d{6}$/.test(params.code)) {
+  const normalizedEmail = params.destination.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) || !/^\d{6}$/.test(params.code)) {
     return { success: false };
   }
 
-  // Use PHONE_VERIFICATION purpose but EMAIL channel for stored challenges that target email
+  const owner = await prisma.user.findUnique({
+    where: { id: params.actorUserId },
+    select: { email: true },
+  });
+  if (!owner?.email || owner.email.trim().toLowerCase() !== normalizedEmail) {
+    return { success: false };
+  }
+
   const challenge = await prisma.otpChallenge.findFirst({
-    where: { destination: params.destination, channel: OtpChannel.EMAIL, consumedAt: null },
+    where: {
+      destination: normalizedEmail,
+      purpose: OtpPurpose.PHONE_VERIFICATION,
+      channel: OtpChannel.EMAIL,
+      consumedAt: null,
+    },
     orderBy: { createdAt: "desc" },
   });
 
   if (!challenge || challenge.expiresAt <= now) return { success: false };
 
-  const expectedHash = hashCode(params.destination, challenge.purpose, params.code);
-  const isValid = challenge.codeHash === expectedHash;
+  const expectedHash = hashCode(normalizedEmail, challenge.purpose, params.code);
+  const isValid = hashesEqual(challenge.codeHash, expectedHash);
 
   if (!isValid) {
-    if (challenge.attempts + 1 >= challenge.maxAttempts) {
-      await prisma.otpChallenge.update({ where: { id: challenge.id }, data: { consumedAt: now } });
-    } else {
-      await prisma.otpChallenge.update({ where: { id: challenge.id }, data: { attempts: challenge.attempts + 1 } });
-    }
+    await recordFailedAttempt(challenge, now);
     return { success: false };
   }
 

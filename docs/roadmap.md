@@ -29,16 +29,16 @@ Pezeshki یک سامانه نوبت‌دهی پزشکی با سه سطح اصل�
 | حوزه | وضعیت | توضیح |
 |---|---|---|
 | Monorepo و Workspaceها | Implemented / بازبینی لازم | ساختار `apps/*` و `packages/*` موجود است |
-| PostgreSQL و Prisma | Partial / migration pending | اعتبارسنجی schema موفق؛ یک migration در DB توسعه pending و migration بزرگ قبلی نیازمند بازبینی است |
+| PostgreSQL و Prisma | Partial / migration reconciliation required | Schema و migrations موجود؛ migration `20261104220451` و migration Appeal باید در dev/test با backup و history یکسان اعمال/تأیید شوند؛ migration قبلی destructive است |
 | Patient registration با OTP | Implemented / دستی تست شده | ساخت User و PatientProfile و Session |
 | Email/password login | Implemented / integration-tested | جریان موفق و رد درخواست‌های نامعتبر پوشش داده شده |
 | Access JWT و Session middleware | Implemented / integration-tested | اعتبارسنجی Session و وضعیت حساب |
 | Refresh rotation | Implemented / integration-tested | Rotation، reuse rejection و race test |
 | Logout و لغو Session | Implemented / integration-tested | Access و Refresh قبلی پس از لغو رد می‌شوند |
 | OTP Login | Implemented / automated integration test | OTP مصرف‌شده، malformed و استفاده مجدد رد می‌شوند |
-| تست خودکار Auth | Partial / 19 passing | چهار فایل تست پاس؛ Reset/Phone Verification و تست‌های production hardening ندارند |
-| Authorization & User Management | Partial (’infrastructure done) | policy پایه، self-profile، file owner-only، admin account status، contact verification، appeal scaffolding؛ endpointهای Appointment/Clinical باز هستند |
-| Doctor / Appointment | Phase 3 Done | Doctor directory, specialty, credential, admin review, create + submit-for-review کامل و تست‌شده؛ Appointment هنوز در نقشه راه |
+| تست خودکار | 64 passing / 3 skipped | کل suite سبز؛ 3 تست Appeal به migration table/schema reconciliation وابسته‌اند |
+| Authorization & User Management | Partial | بنیاد policy/ownership/contact/appeal/admin موجود؛ Appointment/Clinical enforcement و MFA/role workflows باز هستند |
+| Doctor / Appointment | Partial (Phase 3 API) | Directory/review/create/submit و تست‌ها موجود؛ specialty/credential route tests و review route integration tests باز هستند |
 | Frontend workflowها | Planned / در حال توسعه مستقل | نیازمند اتصال به APIهای پایدار |
 
 ## 4. فازهای توسعه
@@ -50,7 +50,8 @@ Pezeshki یک سامانه نوبت‌دهی پزشکی با سه سطح اصل�
 کارها:
 - [x] تثبیت npm workspaces و اسکریپت‌های ریشه.
 - [x] مستندسازی راه‌اندازی پروژه.
-- [x] تثبیت TypeScript configuration و typecheck; lint script موجود است.
+- [x] تثبیت TypeScript configuration و typecheck.
+- [x] Lint script/config و اجرای lint کل workspaceها (clean).
 - [x] ثبت قواعد مدیریت Environment و Secretها.
 - [ ] تأیید migrationهای موجود و وضعیت دیتابیس؛ سیاست backup/restore و دستورات مستند شده‌اند.
 
@@ -59,7 +60,7 @@ Pezeshki یک سامانه نوبت‌دهی پزشکی با سه سطح اصل�
 - Build برنامه‌ها از دستورات مستندشده قابل اجرا باشد.
 - هیچ Secret در Git نباشد.
 
-**وضعیت اجرا (2026-11-07):** build و typecheck موفق؛ lint ناموفق به‌علت نبود فایل `@typescript-eslint/eslint-plugin/dist/index.js` در نصب محلی. `prisma validate` موفق، اما `prisma migrate status` گزارش داد migration `20261104220451_add_auth_otp_sessions` هنوز pending است. migration قبلی (76 KB) دارای تغییرات destructive است و نباید بدون بازبینی/backup روی داده موجود اعمال شود. هیچ `.env` واقعی tracked نیست؛ فایل‌های نمونه شامل مقدار placeholder و credential توسعه محلی‌اند. به‌علت migration pending و lint repair، Phase 0 **Partial / blocked برای بسته‌شدن** است.
+**وضعیت اجرا (بازبینی فعلی):** build، typecheck، lint و `prisma validate` موفق‌اند. dev DB دو migration (`20261104220451` و `20261113090000_add_appeal_workflow`) pending دارد؛ test DB جدول Appeal را دارد و migrationهایش up-to-date است، اما باید history repository و test/dev DBها قبل از apply dev migrations یکسان و مستند شوند. migration قبلی 76KB destructive است و بدون backup/SQL review اعمال نشده. Phase 0 **Partial / blocked برای migration reconciliation** است.
 
 ### Phase 1 — Authentication & Session Foundation
 
@@ -77,9 +78,9 @@ Pezeshki یک سامانه نوبت‌دهی پزشکی با سه سطح اصل�
 - [x] Refresh Token rotation.
 - [x] Logout و revoke کردن Session.
 - [x] تکمیل OTP Login.
-- [ ] تکمیل Password Reset و Phone Verification.
+- [ ] Password Reset کامل نیست. Phone Verification endpoint/service و تست‌های service موجود است، اما تست end-to-end و hardening مقصد/حساب باید تکمیل شود.
 - [x] تست‌های خودکار جریان‌های موجود و تست‌های منفی پایه (4 files / 19 tests passed).
-- [ ] Rate limiting سطح HTTP و کنترل سوءاستفاده (OTP دارای cooldown و سقف روزانه است).
+- [ ] Rate limiting سطح HTTP/IP برای login/OTP وجود ندارد؛ OTP فقط cooldown و daily-limit مقصد دارد.
 - [x] تنظیم CORS بر اساس allowlist و بررسی Cookieهای HttpOnly/SameSite/Secure.
 - [x] تست هم‌زمانی Refresh و OTP replay؛ race در ایجاد challenge متزامن و unique conflict mapping همچنان نیازمند تکمیل است.
 - [ ] بازبینی/پیاده‌سازی CSRF protection برای refresh با Cookie پیش از production و نهایی شدن معماری client.
@@ -90,7 +91,7 @@ Pezeshki یک سامانه نوبت‌دهی پزشکی با سه سطح اصل�
 - رفتار هم‌زمانی Refresh و OTP بررسی شود.
 - هیچ Secret یا کد OTP در Logهای Production نباشد.
 
-**وضعیت Phase 1:** **Partial / در حال تکمیل**. مسیرهای فعلی ثبت‌نام/ورود و session پاس هستند، اما Password Reset، Phone Verification، HTTP rate limit، CSRF production review و بعضی race/unique-constraintها باز هستند؛ Phase 1 را هنوز نمی‌توان کامل اعلام کرد.
+**وضعیت Phase 1:** **Partial / production hardening required**. Password Reset، HTTP/IP rate limit و CSRF باز هستند؛ Phone Verification هنوز end-to-end و با policy مالکیت مقصد کامل نشده است.
 
 ### Phase 2 — Authorization & User Management
 
@@ -103,10 +104,10 @@ Pezeshki یک سامانه نوبت‌دهی پزشکی با سه سطح اصل�
 - [x] فهرست کاربران Admin با فیلتر role/status، cursor pagination و فیلدهای حداقلی.
 - [x] API فایل private با کنترل مالکیت برای خود مالک؛ مجوزهای رابطه درمانی هنوز وجود ندارد.
 - [x] API پایه پروفایل Doctor با مالکیت مبتنی بر هویت احرازشده و فیلدهای قابل ویرایش allowlist شده.
-- [ ] تکمیل ماتریس دسترسی Patient / Doctor / Admin برای ماژول‌های Appointment/Clinical/Admin review (definitive در policy.ts، route/endpoint در Phase 3+).
+- [ ] اکشن‌های Appointment/Clinical در policy تعریف شده‌اند، اما route/service enforcement و تست IDOR برایشان وجود ندارد.
 - [ ] جلوگیری از دسترسی کاربر به منابع متعلق به دیگران در ماژول‌های Doctor/Appointment/Medical Records (بدون endpoint دامنه‌ای قابل اجرا نیست).
 - [x] تکمیل User Profile API و سیاست‌های verification برای اطلاعات تماس (contact/send-otp + verify).
-- [ ] تکمیل workflow lifecycle حساب (appeal bone-arrastre در policy+service+controller+route، migration pending؛ MFA/strong auth و role transition audited باز هستند).
+- [ ] Appeal کد/مدل/route و تست دارد، اما migration history باید reconcile شود؛ MFA/strong auth و audited role transition باز هستند.
 - [x] ثبت AuditLog برای تغییر وضعیت حساب توسط Admin.
 - [x] تست منفی دسترسی عمودی برای Admin endpoints و دسترسی افقی برای self-profile و private files.
 
@@ -116,7 +117,7 @@ Pezeshki یک سامانه نوبت‌دهی پزشکی با سه سطح اصل�
 - تست‌های منفی برای دسترسی غیرمجاز وجود داشته باشد.
 - برای هر resource domain جدید (appointments, medical records, doctor resources)، مالکیت/رابطه دسترسی قبل از افزودن endpoint تعریف و جداگانه تست شود.
 
-**پیشرفت (2026-11-11):** policy پایه，self-profile，فهرست و status management توسط Admin، audit و file owner-only checks پیاده‌سازی شده‌اند. API پروفایل Doctor نیز به‌صورت `/api/doctor/profile/me` اضافه شده است: lookup/update فقط بر اساس `userId` session, allowlist فیلدها, رد دسترسی غیر-Doctor و read-only بودن پروفایل‌های APPROVED/SUSPENDED. Unit و DB integration testها role denial, isolation مالکیت و status lock را پوشش می‌دهند. **Phase 2 核心框架已完成**: 权限矩阵扩展到 contact/appeal/appointment/clinical 声明层; `utils/ownership.ts` 提供所有权校验与自动 AuditLog; Contact Verification 双通道落地; Appeal 骨架就位(测试因 migration pending skip); Admin audit 增强。Appointment/Medical Records 领域端点尚未实现,IDOR 保护需在 Phase 3+ 分批闭合。MFA / Admin 强认证 / role transition 仍需产品安全决策。**结论:** Phase 2 策略层与基础设施已就绪进入验收;业务域 IDOR 视后续阶段推进分批闭合。Phase 1 仍为 Partial。
+**پیشرفت (بازبینی فعلی):** Auth/self-profile، Admin user list/status، owner-only file، Doctor profile و directory پایه پیاده‌اند. Appeal در test DB اجرا نشده بود اما اکنون تست‌ها active هستند؛ migration reconciliation dev هنوز باقی است. Policyهای آینده جای route enforcement نیستند؛ Appointment/Clinical endpoints و IDOR آن‌ها موجود نیستند. MFA، audited role transition و production hardening باز هستند. Phase 2 **Partial / foundation only** است.
 
 ### Phase 3 — Medical Specialties & Doctor Profiles
 
@@ -138,7 +139,7 @@ Pezeshki یک سامانه نوبت‌دهی پزشکی با سه سطح اصل�
 - پزشک تأییدنشده در جستجوی عمومی نمایش داده نشود، مگر سیاست محصول خلاف آن باشد.
 - داده‌های تخصصی دارای اعتبارسنجی و تست باشند.
 
-**پیشرفت (2026-11-13):** APIهای عمومی فهرست و جزئیات پزشک (`/api/doctors`, `/api/doctors/:doctorId`) با فیلتر تخصص/شهر/جستجو و نمایش فقط پزشکان APPROVED و منتشرشده. APIهای مدیریت تخصص و مدارک پزشک (`/api/doctors/specialties`, `/api/doctors/credentials`) با کنترل نقش DOCTOR. چرخه کامل ورود/بازبینی: ساخت پروفایل (`POST /api/doctor/profile` در حالت DRAFT)، ارسال برای بررسی (`POST /api/doctor/profile/submit` -> PENDING_REVIEW + submittedAt)، و بازبینی توسط Admin (`/api/admin/doctors/review` و `PATCH /api/admin/doctors/:doctorId/review`) با ثبت AuditLog و toggle انتشار. شماره تلفن شخصی پزشک دیگر در جزئیات عمومی بازگردانده نمی‌شود. تست‌های واحد و DB برای directory، review، و چرخه کامل create->submit->approve اضافه شد. **فاز 3 کامل شد.**
+**پیشرفت (بازبینی فعلی):** Directory/public detail و create/submit/review flow پیاده و تست شده‌اند؛ 64 تست کل suite سبز است. Specialty/credential routes و admin review route هنوز integration test اختصاصی ندارند و credential ownership/deletion policy باید تکمیل شود. Phase 3 **Partial / API foundation complete** است، نه fully closed.
 
 ### Phase 4 — Availability & Scheduling
 

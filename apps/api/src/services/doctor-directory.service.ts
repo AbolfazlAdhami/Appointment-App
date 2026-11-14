@@ -18,7 +18,6 @@ const publicDoctorSelect = {
     select: {
       firstName: true,
       lastName: true,
-      phone: true,
     },
   },
   specialties: {
@@ -100,7 +99,7 @@ export async function listDoctors(input: DoctorListQuery & { actorUserId?: strin
   ]);
 
   const typedItems: DoctorDirectoryItem[] = items.map((d) => {
-    const user = d.user as { firstName: string; lastName: string; phone: string };
+    const user = d.user as { firstName: string; lastName: string };
     return {
       id: d.id,
       doctorName: `${user.firstName} ${user.lastName}`.trim(),
@@ -145,7 +144,7 @@ export async function getDoctorPublicDetails(doctorId: string) {
     return null;
   }
 
-  const user = doctor.user as { firstName: string; lastName: string; phone: string };
+  const user = doctor.user as { firstName: string; lastName: string };
 
   return {
     id: doctor.id,
