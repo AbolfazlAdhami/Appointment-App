@@ -1,6 +1,7 @@
+import { createHmac } from "node:crypto";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { prisma } from "../../libs/prisma";
-import { requestContactOtp, verifyPhoneContactOtp, verifyEmailContactOtp } from "../contact-verification.service";
+import { requestContactOtp, verifyPhoneContactOtp } from "../contact-verification.service";
 
 describe("contact-verification service", () => {
   const testUserId = "test-contact-user";
@@ -22,8 +23,7 @@ describe("contact-verification service", () => {
     });
 
     // Inject a pre-hashed challenge matching validCode
-    const crypto = require("node:crypto");
-    const codeHash = crypto.createHmac("sha256", process.env.OTP_SECRET || "x").update(`${validPhone}:PHONE_VERIFICATION:${validCode}`).digest("hex");
+    const codeHash = createHmac("sha256", process.env.OTP_SECRET || "x").update(`${validPhone}:PHONE_VERIFICATION:${validCode}`).digest("hex");
 
     await prisma.otpChallenge.create({
       data: {

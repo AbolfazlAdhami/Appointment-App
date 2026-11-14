@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { Response } from "express";
 import type { AuthenticatedRequest } from "../middlewares/auth.middleware";
 import { CreateAppealSchema, ReviewAppealSchema } from "../schemas/appeal.schema";
 import { createAppeal, listOpenAppeals, reviewAppeal } from "../services/appeal.service";

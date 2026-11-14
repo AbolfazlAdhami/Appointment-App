@@ -1,4 +1,4 @@
-import { AuditActorType, AuditOutcome, DoctorVerificationStatus, Role } from "../generated/prisma/client";
+import { AuditActorType, AuditOutcome, DoctorVerificationStatus } from "../generated/prisma/client";
 import { prisma } from "../libs/prisma";
 import type { DoctorReviewInput } from "../schemas/doctor-review.schema";
 

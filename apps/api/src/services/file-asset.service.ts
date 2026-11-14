@@ -16,7 +16,10 @@ function matchesFileSignature(contentType: string, file: Buffer): boolean {
 }
 
 function sanitizeOriginalName(name: string): string {
-  const safeName = basename(name).replace(/[\u0000-\u001f\u007f]/g, "").trim();
+  const safeName = [...basename(name)].filter((character) => {
+    const code = character.charCodeAt(0);
+    return code > 0x1f && code !== 0x7f;
+  }).join("").trim();
   return safeName.slice(0, 255) || "upload";
 }
 

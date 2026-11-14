@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { Response } from "express";
 import type { AuthenticatedRequest } from "../middlewares/auth.middleware";
 import { DoctorCredentialCreateSchema } from "../schemas/doctor-credential.schema";
 import {
